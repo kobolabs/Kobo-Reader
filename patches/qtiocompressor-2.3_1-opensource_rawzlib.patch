@@ -1,0 +1,23 @@
+--- qtiocompressor-2.3_1-opensource/src/qtiocompressor.cpp	2009-12-16 05:40:11.000000000 -0500
++++ qtiocompressor/src/qtiocompressor.cpp	2010-06-02 22:29:45.951568573 -0400
+@@ -374,6 +374,9 @@
+     // value selects no headers hand then negates the windowBits argument.
+     int windowBits;
+     switch (d->streamFormat) {
++    case QtIOCompressor::RawZlibFormat:
++        windowBits = 15+32;
++        break;
+     case QtIOCompressor::GzipFormat:
+         windowBits = 31;
+         break;
+--- qtiocompressor-2.3_1-opensource/src/qtiocompressor.h	2009-12-16 05:40:11.000000000 -0500
++++ qtiocompressor/src/qtiocompressor.h	2010-06-02 22:29:45.951568573 -0400
+@@ -70,7 +70,7 @@
+ {
+ Q_OBJECT
+ public:
+-enum StreamFormat { ZlibFormat, GzipFormat, RawZipFormat };
++enum StreamFormat { ZlibFormat, GzipFormat, RawZipFormat, RawZlibFormat };
+     QtIOCompressor(QIODevice *device, int compressionLevel = 6, int bufferSize = 65500);
+     ~QtIOCompressor();
+     void setStreamFormat(StreamFormat format);

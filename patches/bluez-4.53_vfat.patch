@@ -1,0 +1,25 @@
+--- src/storage.c       2009-08-16 14:43:34.000000000 -0400
++++ src/storage.c.new   2010-06-07 11:15:37.379757515 -0400
+@@ -48,12 +48,21 @@
+ #include "glib-helper.h"
+ #include "storage.h"
+ 
++static int ba2str_kobo(const bdaddr_t *ba, char *str)
++{
++       uint8_t b[6];
++
++       baswap((bdaddr_t *) b, ba);
++       return sprintf(str, "%2.2X_%2.2X_%2.2X_%2.2X_%2.2X_%2.2X",
++               b[0], b[1], b[2], b[3], b[4], b[5]);
++}
++
+ static inline int create_filename(char *buf, size_t size,
+                                const bdaddr_t *bdaddr, const char *name)
+ {
+        char addr[18];
+ 
+-       ba2str(bdaddr, addr);
++       ba2str_kobo(bdaddr, addr);
+ 
+        return create_name(buf, size, STORAGEDIR, addr, name);
+ }

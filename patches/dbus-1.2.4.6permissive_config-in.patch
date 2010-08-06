@@ -1,0 +1,33 @@
+--- dbus-1.2.4.6permissive/configure.in	2009-05-06 13:26:48.000000000 -0400
++++ dbus-1.2.4.6permissive/configure.in	2009-09-30 14:43:33.000000000 -0400
+@@ -257,19 +257,6 @@
+      ;;
+   esac
+ 
+-  case " $CFLAGS " in
+-  *[\ \	]-fPIE[\ \	]*) ;;
+-  *) if cc_supports_flag -fPIE; then
+-        PIE_CFLAGS="-fPIE"
+-        if ld_supports_flag -z,relro; then
+-           PIE_LDFLAGS="-pie -Wl,-z,relro"
+-        else
+-           PIE_LDFLAGS="-pie"
+-        fi
+-     fi
+-     ;;
+-  esac
+-  
+   ### Disabled warnings, and compiler flag overrides
+   
+   # Let's just ignore unused for now
+@@ -286,10 +273,6 @@
+   *[\ \	]-Wno-sign-compare[\ \	]*) ;;
+   *) CFLAGS="$CFLAGS -Wno-sign-compare" ;;
+   esac
+-  case " $CFLAGS " in
+-  *[\ \	]-Wno-pointer-sign[\ \	]*) ;;
+-  *) CFLAGS="$CFLAGS -Wno-pointer-sign" ;;
+-  esac  
+   
+   # http://bugs.freedesktop.org/show_bug.cgi?id=19195
+   case " $CFLAGS " in

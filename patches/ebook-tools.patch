@@ -1,0 +1,115 @@
+Index: src/libepub/opf.c
+===================================================================
+--- src/libepub/opf.c	(revision 12847)
++++ src/libepub/opf.c	(revision 14516)
+@@ -262,7 +262,7 @@
+   struct tocCategory *tc = malloc(sizeof(struct tocCategory));
+ 
+   tc->id = NULL;
+-  tc->class = NULL;
++  tc->klass = NULL;
+ 
+   tc->info = NewListAlloc(LIST, NULL, NULL, NULL); //tocLabel
+   tc->label = NewListAlloc(LIST, NULL, NULL, NULL); //tocLabel
+@@ -274,8 +274,8 @@
+ void _opf_free_toc_category(struct tocCategory *tc) {
+   if (tc->id)
+     free(tc->id);
+-  if (tc->class)
+-    free(tc->class);
++  if (tc->klass)
++	free(tc->klass);
+   
+   FreeList(tc->info, (ListFreeFunc)_list_free_toc_label);
+   FreeList(tc->label, (ListFreeFunc)_list_free_toc_label);
+@@ -338,7 +338,7 @@
+   item->src = NULL;
+   item->depth = depth;
+   item->id = NULL;
+-  item->class = NULL;
++  item->klass = NULL;
+   item->playOrder = -1;
+   item->value = -1;
+ 
+@@ -387,7 +387,7 @@
+         depth++;
+         item = _opf_init_toc_item(depth);
+         item->id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
+-        item->class = xmlTextReaderGetAttribute(reader, (xmlChar *)"class");
++		item->klass = xmlTextReaderGetAttribute(reader, (xmlChar *)"klass");
+         
+         item->playOrder = _get_attribute_as_positive_int(reader, (xmlChar *)"playOrder");
+         if (item->playOrder == -1) {
+@@ -453,7 +453,7 @@
+   struct tocItem *item = NULL;
+ 
+   tc->id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
+-  tc->class = xmlTextReaderGetAttribute(reader, (xmlChar *)"class");
++  tc->klass = xmlTextReaderGetAttribute(reader, (xmlChar *)"klass");
+     
+   _epub_print_debug(opf->epub, DEBUG_INFO, "parsing nav list");
+ 
+@@ -465,7 +465,7 @@
+       if (xmlTextReaderNodeType(reader) == 1) {
+         item = _opf_init_toc_item(1);
+         item->id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
+-        item->class = xmlTextReaderGetAttribute(reader, (xmlChar *)"class");
++		item->klass = xmlTextReaderGetAttribute(reader, (xmlChar *)"klass");
+         
+         item->playOrder = _get_attribute_as_positive_int(reader, (xmlChar *)"playOrder");
+         if (item->playOrder == -1) {
+@@ -532,7 +532,7 @@
+   struct tocItem *item = NULL;
+   
+   tc->id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
+-  tc->class = xmlTextReaderGetAttribute(reader, (xmlChar *)"class");
++  tc->klass = xmlTextReaderGetAttribute(reader, (xmlChar *)"klass");
+   
+   _epub_print_debug(opf->epub, DEBUG_INFO, "parsing page list");
+   
+@@ -543,7 +543,7 @@
+       if (xmlTextReaderNodeType(reader) == 1) {
+         item = _opf_init_toc_item(1);
+         item->id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
+-        item->class = xmlTextReaderGetAttribute(reader, (xmlChar *)"class");
++		item->klass = xmlTextReaderGetAttribute(reader, (xmlChar *)"klass");
+         item->type  = xmlTextReaderGetAttribute(reader, (xmlChar *)"type");
+         
+         item->playOrder = _get_attribute_as_positive_int(reader, (xmlChar *)"playOrder");
+Index: src/libepub/epublib.h
+===================================================================
+--- src/libepub/epublib.h	(revision 12847)
++++ src/libepub/epublib.h	(revision 14516)
+@@ -124,7 +124,7 @@
+ struct tocItem {
+   xmlChar *id;
+   xmlChar *src;
+-  xmlChar *class;
++  xmlChar *klass;
+   xmlChar *type; //pages
+   listPtr label;
+   int depth;
+@@ -135,7 +135,7 @@
+ // struct for navMap, pageList, navList
+ struct tocCategory {
+   xmlChar *id;
+-  xmlChar *class;
++  xmlChar *klass;
+   listPtr info; //tocLabel
+   listPtr label; //tocLabel
+   listPtr items; //tocItem
+Index: src/libepub/list.c
+===================================================================
+--- src/libepub/list.c	(revision 12847)
++++ src/libepub/list.c	(revision 14516)
+@@ -115,8 +115,8 @@
+     free(ti->id);
+   if (ti->src)
+     free(ti->src);
+-  if (ti->class)
+-    free(ti->class);
++  if (ti->klass)
++	free(ti->klass);
+   if (ti->type)
+     free(ti->type);
+ 

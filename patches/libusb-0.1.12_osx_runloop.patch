@@ -1,0 +1,27 @@
+Index: darwin.c
+===================================================================
+--- darwin.c	(revision 15386)
++++ darwin.c	(revision 16272)
+@@ -837,20 +837,13 @@
+ 		       (void *)&rw_arg);
+ 
+   if (result == kIOReturnSuccess) {
+-    /* wait for write to complete */
+-    if (CFRunLoopRunInMode(kCFRunLoopDefaultMode, (timeout+999)/1000, true) == kCFRunLoopRunTimedOut) {
+-      (*(device->interface))->AbortPipe(device->interface, pipeRef);
+-      CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true); /* Pick up aborted callback */
+-      if (usb_debug)
+-	fprintf(stderr, "usb_bulk_read: input timed out\n");
+-    }
++    CFRunLoopRun();
+   }
+ 
+   CFRunLoopRemoveSource(CFRunLoopGetCurrent(), cfSource, kCFRunLoopDefaultMode);
+   
+   /* Check the return code of both the write and completion functions. */
+-  if (result != kIOReturnSuccess || (rw_arg.result != kIOReturnSuccess && 
+-      rw_arg.result != kIOReturnAborted) ) {
++  if (result != kIOReturnSuccess || rw_arg.result != kIOReturnSuccess) {
+     int error_code;
+     char *error_str;
+ 

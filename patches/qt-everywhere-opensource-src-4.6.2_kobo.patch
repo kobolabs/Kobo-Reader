@@ -1,0 +1,238 @@
+Index: src/corelib/kernel/qeventdispatcher_unix.cpp
+===================================================================
+--- src/corelib/kernel/qeventdispatcher_unix.cpp	(revision 12931)
++++ src/corelib/kernel/qeventdispatcher_unix.cpp	(revision 16271)
+@@ -469,6 +469,9 @@
+ 
+ void QTimerInfoList::registerTimer(int timerId, int interval, QObject *object)
+ {
++    updateCurrentTime();
++    repairTimersIfNeeded();
++
+     QTimerInfo *t = new QTimerInfo;
+     t->id = timerId;
+     t->interval.tv_sec  = interval / 1000;
+Index: src/gui/kernel/qcocoaview_mac.mm
+===================================================================
+--- src/gui/kernel/qcocoaview_mac.mm	(revision 12931)
++++ src/gui/kernel/qcocoaview_mac.mm	(revision 16271)
+@@ -644,6 +644,9 @@
+ 
+ - (void)mouseEntered:(NSEvent *)event
+ {
++    if (qwidgetprivate->data.in_destructor) {
++	return;
++    }
+     QEvent enterEvent(QEvent::Enter);
+     NSPoint windowPoint = [event locationInWindow];
+     NSPoint globalPoint = [[event window] convertBaseToScreen:windowPoint];
+Index: src/gui/kernel/qwidget_mac.mm
+===================================================================
+--- src/gui/kernel/qwidget_mac.mm	(revision 12931)
++++ src/gui/kernel/qwidget_mac.mm	(revision 16271)
+@@ -3510,6 +3510,9 @@
+ 
+     if (!QWidget::mouseGrabber()){
+         QWidget *enterWidget = QApplication::widgetAt(QCursor::pos());
++	if (enterWidget && enterWidget->data->in_destructor) {
++	    enterWidget = 0;
++	}
+         QApplicationPrivate::dispatchEnterLeave(enterWidget, qt_mouseover);
+         qt_mouseover = enterWidget;
+     }
+Index: src/gui/text/qtextdocumentlayout_p.h
+===================================================================
+--- src/gui/text/qtextdocumentlayout_p.h	(revision 12931)
++++ src/gui/text/qtextdocumentlayout_p.h	(revision 16271)
+@@ -102,6 +102,7 @@
+ 
+     bool contentHasAlignment() const;
+ 
++    virtual void setLineSpacing(int);
+ protected:
+     void documentChanged(int from, int oldLength, int length);
+     void resizeInlineObject(QTextInlineObject item, int posInDocument, const QTextFormat &format);
+Index: src/gui/text/qtextdocumentlayout.cpp
+===================================================================
+--- src/gui/text/qtextdocumentlayout.cpp	(revision 12931)
++++ src/gui/text/qtextdocumentlayout.cpp	(revision 16271)
+@@ -513,6 +513,8 @@
+ 
+     qreal scaleToDevice(qreal value) const;
+     QFixed scaleToDevice(QFixed value) const;
++
++    int lineSpacing;
+ };
+ 
+ QTextDocumentLayoutPrivate::QTextDocumentLayoutPrivate()
+@@ -526,6 +528,7 @@
+     insideDocumentChange = false;
+     idealWidth = 0;
+     contentHasAlignment = false;
++    lineSpacing = 0;
+ }
+ 
+ QTextFrame::Iterator QTextDocumentLayoutPrivate::frameIteratorForYPosition(QFixed y) const
+@@ -2643,7 +2646,7 @@
+ 
+             }
+ 
+-            QFixed lineHeight = QFixed::fromReal(line.height());
++            QFixed lineHeight = QFixed::fromReal(line.height()) + this->lineSpacing;
+             if (layoutStruct->pageHeight > 0 && layoutStruct->absoluteY() + lineHeight > layoutStruct->pageBottom) {
+                 layoutStruct->newPage();
+ 
+@@ -2676,7 +2679,7 @@
+             QTextLine line = tl->lineAt(i);
+             layoutStruct->contentsWidth
+                 = qMax(layoutStruct->contentsWidth, QFixed::fromReal(line.x() + tl->lineAt(i).naturalTextWidth()) + totalRightMargin);
+-            const QFixed lineHeight = QFixed::fromReal(line.height());
++            const QFixed lineHeight = QFixed::fromReal(line.height()) + this->lineSpacing;
+             if (layoutStruct->pageHeight != QFIXED_MAX) {
+                 if (layoutStruct->absoluteY() + lineHeight > layoutStruct->pageBottom)
+                     layoutStruct->newPage();
+@@ -2775,6 +2778,11 @@
+     registerHandler(QTextFormat::ImageObject, new QTextImageHandler(this));
+ }
+ 
++void QTextDocumentLayout::setLineSpacing(int value)
++{
++    Q_D(QTextDocumentLayout);
++    d->lineSpacing = value;
++}
+ 
+ void QTextDocumentLayout::draw(QPainter *painter, const PaintContext &context)
+ {
+Index: src/gui/text/qabstracttextdocumentlayout.h
+===================================================================
+--- src/gui/text/qabstracttextdocumentlayout.h	(revision 12931)
++++ src/gui/text/qabstracttextdocumentlayout.h	(revision 16271)
+@@ -103,6 +103,8 @@
+     void registerHandler(int objectType, QObject *component);
+     QTextObjectInterface *handlerForObject(int objectType) const;
+ 
++    virtual void setLineSpacing(int) {};
++
+ Q_SIGNALS:
+     void update(const QRectF & = QRectF(0., 0., 1000000000., 1000000000.));
+     void updateBlock(const QTextBlock &block);
+Index: src/dbus/qdbusintegrator.cpp
+===================================================================
+--- src/dbus/qdbusintegrator.cpp	(revision 12931)
++++ src/dbus/qdbusintegrator.cpp	(revision 16271)
+@@ -2051,6 +2051,7 @@
+                     ++data.refcount;
+                 } else {
+                     // we need to watch for this service changing
++                    data.refcount = 1;
+                     QString dbusServerService = QLatin1String(DBUS_SERVICE_DBUS);
+                     connectSignal(dbusServerService, QString(), QLatin1String(DBUS_INTERFACE_DBUS),
+                                   QLatin1String("NameOwnerChanged"), QStringList() << hook.service, QString(),
+@@ -2105,19 +2106,6 @@
+ {
+     const SignalHook &hook = it.value();
+ 
+-    WatchedServicesHash::Iterator sit = watchedServices.find(hook.service);
+-    if (sit != watchedServices.end()) {
+-        if (sit.value().refcount == 1) {
+-            watchedServices.erase(sit);
+-            QString dbusServerService = QLatin1String(DBUS_SERVICE_DBUS);
+-            disconnectSignal(dbusServerService, QString(), QLatin1String(DBUS_INTERFACE_DBUS),
+-                          QLatin1String("NameOwnerChanged"), QStringList() << hook.service, QString(),
+-                          this, SLOT(_q_serviceOwnerChanged(QString,QString,QString)));
+-        } else {
+-            --sit.value().refcount;
+-        }
+-    }
+-
+     bool erase = false;
+     MatchRefCountHash::iterator i = matchRefCounts.find(hook.matchRule);
+     if (i == matchRefCounts.end()) {
+@@ -2132,6 +2120,22 @@
+         }
+     }
+ 
++    if (erase)
++    {
++        WatchedServicesHash::Iterator sit = watchedServices.find(hook.service);
++        if (sit != watchedServices.end()) {
++            if (sit.value().refcount == 1) {
++                watchedServices.erase(sit);
++                QString dbusServerService = QLatin1String(DBUS_SERVICE_DBUS);
++                disconnectSignal(dbusServerService, QString(), QLatin1String(DBUS_INTERFACE_DBUS),
++                              QLatin1String("NameOwnerChanged"), QStringList() << hook.service, QString(),
++                              this, SLOT(_q_serviceOwnerChanged(QString,QString,QString)));
++            } else {
++                --sit.value().refcount;
++            }
++        }
++    }
++
+     // we don't care about errors here
+     if (connection && erase) {
+         qDBusDebug("Removing rule: %s", hook.matchRule.constData());
+Index: src/sql/kernel/qsqldriver.h
+===================================================================
+--- src/sql/kernel/qsqldriver.h	(revision 12931)
++++ src/sql/kernel/qsqldriver.h	(revision 16271)
+@@ -133,6 +133,7 @@
+     void setNumericalPrecisionPolicy(QSql::NumericalPrecisionPolicy precisionPolicy);
+     QSql::NumericalPrecisionPolicy numericalPrecisionPolicy() const;
+ 
++    virtual void sqlite_interrupt() {} /* it seems apps can't include qsql_sqlite.h, so need a virtual here */
+ Q_SIGNALS:
+     void notification(const QString &name);
+ 
+Index: src/sql/drivers/sqlite/qsql_sqlite.cpp
+===================================================================
+--- src/sql/drivers/sqlite/qsql_sqlite.cpp	(revision 12931)
++++ src/sql/drivers/sqlite/qsql_sqlite.cpp	(revision 16271)
+@@ -714,4 +714,9 @@
+     return _q_escapeIdentifier(identifier);
+ }
+ 
++void QSQLiteDriver::sqlite_interrupt()
++{
++    sqlite3_interrupt(d->access);
++}
++
+ QT_END_NAMESPACE
+Index: src/sql/drivers/sqlite/qsql_sqlite.h
+===================================================================
+--- src/sql/drivers/sqlite/qsql_sqlite.h	(revision 12931)
++++ src/sql/drivers/sqlite/qsql_sqlite.h	(revision 16271)
+@@ -112,6 +112,8 @@
+     QVariant handle() const;
+     QString escapeIdentifier(const QString &identifier, IdentifierType) const;
+ 
++    virtual void sqlite_interrupt();
++
+ private:
+     QSQLiteDriverPrivate* d;
+ };
+Index: src/3rdparty/freetype/include/freetype/config/ftconfig.h
+===================================================================
+--- src/3rdparty/freetype/include/freetype/config/ftconfig.h	(revision 12931)
++++ src/3rdparty/freetype/include/freetype/config/ftconfig.h	(revision 16271)
+@@ -327,7 +327,7 @@
+       "adds   %1, %1, %0\n\t"       /* %1 += %0 */
+       "adc    %2, %2, #0\n\t"       /* %2 += carry */
+       "mov    %0, %1, lsr #16\n\t"  /* %0  = %1 >> 16 */
+-      "orr    %0, %2, lsl #16\n\t"  /* %0 |= %2 << 16 */
++      "orr %0, %0, %2, lsl #16\n\t" /* %0 |= %2 << 16 */
+       : "=r"(a), "=&r"(t2), "=&r"(t)
+       : "r"(a), "r"(b) );
+     return a;
+Index: src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp
+===================================================================
+--- src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp	(revision 12931)
++++ src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp	(revision 16271)
+@@ -745,6 +745,8 @@
+             if (o->isText()) {
+                 RenderText* text = toRenderText(o);
+                 IntRect linesBox = text->linesBoundingBox();
++                if (linesBox.width()==0 && linesBox.height()==0 && linesBox.x() == 0 && linesBox.x() == 0)
++                    continue;
+                 point.move(linesBox.x() + linesBox.width(), linesBox.y() + linesBox.height());
+             } else {
+                 RenderBox* box = toRenderBox(o);

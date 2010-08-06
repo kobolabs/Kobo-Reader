@@ -1,0 +1,11 @@
+--- modutils/modprobe.c 2009-06-21 18:46:43.000000000 -0400
++++ modutils/modprobe.c 2010-06-09 13:58:22.961320747 -0400
+@@ -348,8 +348,6 @@
+
+        /* Goto modules location */
+        xchdir(CONFIG_DEFAULT_MODULES_DIR);
+-       uname(&uts);
+-       xchdir(uts.release);
+
+        /* Retrieve module names of already loaded modules */
+        {
