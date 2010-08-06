@@ -9,3 +9,6 @@ patches/        This contains the patches to the packages to get them to
                 compile on ARM, OS X, Windows, etc..
 poker/          This contains Video Poker - the easter egg found on the
                 Kobo Reader by asking for Help on Help.
+poser/          This is a small interposing library used to sniff ioctl's.
+                Kobo used this to reverse engineer some of the Netronix
+                EB600em API in times when documentation was sparse.
