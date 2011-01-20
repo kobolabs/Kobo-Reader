@@ -149,7 +149,7 @@ void VideoPokerGame::keyPressEvent(QKeyEvent *e) {
 			QWidget::keyPressEvent(e);
 		}
 	}
-	else if (e->key() == Qt::Key_M || e->key() == Qt::Key_F) {
+	else if (e->key() == Qt::Key_Menu || e->key() == Qt::Key_Display) {
 		// swallowed!
 	}
 	else {

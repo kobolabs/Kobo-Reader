@@ -3,18 +3,14 @@
 
 VideoPokerPlugin::VideoPokerPlugin()
 {
-	qDebug() << __FUNCTION__;
 }
 
 VideoPokerPlugin::~VideoPokerPlugin()
 {
-	qDebug() << __FUNCTION__;
 }
 
 QStringList VideoPokerPlugin::mimeTypes()
 {
-	qDebug() << __FUNCTION__;
-
 	QStringList mimeTypes;
 	mimeTypes << "application/x-games-videopoker";
 
@@ -23,7 +19,6 @@ QStringList VideoPokerPlugin::mimeTypes()
 
 QWidget *VideoPokerPlugin::reader(QWidget *parent)
 {
-	qDebug() << __FUNCTION__;
 	VideoPokerGame *w = new VideoPokerGame(parent);
 	w->setGeometry(0, 0, 600, 734);
 	return w;
