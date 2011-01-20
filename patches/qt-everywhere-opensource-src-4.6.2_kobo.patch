@@ -1,7 +1,7 @@
 Index: src/corelib/kernel/qeventdispatcher_unix.cpp
 ===================================================================
 --- src/corelib/kernel/qeventdispatcher_unix.cpp	(revision 12931)
-+++ src/corelib/kernel/qeventdispatcher_unix.cpp	(revision 16271)
++++ src/corelib/kernel/qeventdispatcher_unix.cpp	(revision 22411)
 @@ -469,6 +469,9 @@
  
  void QTimerInfoList::registerTimer(int timerId, int interval, QObject *object)
@@ -15,7 +15,7 @@ Index: src/corelib/kernel/qeventdispatcher_unix.cpp
 Index: src/gui/kernel/qcocoaview_mac.mm
 ===================================================================
 --- src/gui/kernel/qcocoaview_mac.mm	(revision 12931)
-+++ src/gui/kernel/qcocoaview_mac.mm	(revision 16271)
++++ src/gui/kernel/qcocoaview_mac.mm	(revision 22411)
 @@ -644,6 +644,9 @@
  
  - (void)mouseEntered:(NSEvent *)event
@@ -29,7 +29,7 @@ Index: src/gui/kernel/qcocoaview_mac.mm
 Index: src/gui/kernel/qwidget_mac.mm
 ===================================================================
 --- src/gui/kernel/qwidget_mac.mm	(revision 12931)
-+++ src/gui/kernel/qwidget_mac.mm	(revision 16271)
++++ src/gui/kernel/qwidget_mac.mm	(revision 22411)
 @@ -3510,6 +3510,9 @@
  
      if (!QWidget::mouseGrabber()){
@@ -43,7 +43,7 @@ Index: src/gui/kernel/qwidget_mac.mm
 Index: src/gui/text/qtextdocumentlayout_p.h
 ===================================================================
 --- src/gui/text/qtextdocumentlayout_p.h	(revision 12931)
-+++ src/gui/text/qtextdocumentlayout_p.h	(revision 16271)
++++ src/gui/text/qtextdocumentlayout_p.h	(revision 22411)
 @@ -102,6 +102,7 @@
  
      bool contentHasAlignment() const;
@@ -55,7 +55,7 @@ Index: src/gui/text/qtextdocumentlayout_p.h
 Index: src/gui/text/qtextdocumentlayout.cpp
 ===================================================================
 --- src/gui/text/qtextdocumentlayout.cpp	(revision 12931)
-+++ src/gui/text/qtextdocumentlayout.cpp	(revision 16271)
++++ src/gui/text/qtextdocumentlayout.cpp	(revision 22411)
 @@ -513,6 +513,8 @@
  
      qreal scaleToDevice(qreal value) const;
@@ -106,7 +106,7 @@ Index: src/gui/text/qtextdocumentlayout.cpp
 Index: src/gui/text/qabstracttextdocumentlayout.h
 ===================================================================
 --- src/gui/text/qabstracttextdocumentlayout.h	(revision 12931)
-+++ src/gui/text/qabstracttextdocumentlayout.h	(revision 16271)
++++ src/gui/text/qabstracttextdocumentlayout.h	(revision 22411)
 @@ -103,6 +103,8 @@
      void registerHandler(int objectType, QObject *component);
      QTextObjectInterface *handlerForObject(int objectType) const;
@@ -119,7 +119,7 @@ Index: src/gui/text/qabstracttextdocumentlayout.h
 Index: src/dbus/qdbusintegrator.cpp
 ===================================================================
 --- src/dbus/qdbusintegrator.cpp	(revision 12931)
-+++ src/dbus/qdbusintegrator.cpp	(revision 16271)
++++ src/dbus/qdbusintegrator.cpp	(revision 22411)
 @@ -2051,6 +2051,7 @@
                      ++data.refcount;
                  } else {
@@ -174,7 +174,7 @@ Index: src/dbus/qdbusintegrator.cpp
 Index: src/sql/kernel/qsqldriver.h
 ===================================================================
 --- src/sql/kernel/qsqldriver.h	(revision 12931)
-+++ src/sql/kernel/qsqldriver.h	(revision 16271)
++++ src/sql/kernel/qsqldriver.h	(revision 22411)
 @@ -133,6 +133,7 @@
      void setNumericalPrecisionPolicy(QSql::NumericalPrecisionPolicy precisionPolicy);
      QSql::NumericalPrecisionPolicy numericalPrecisionPolicy() const;
@@ -186,7 +186,7 @@ Index: src/sql/kernel/qsqldriver.h
 Index: src/sql/drivers/sqlite/qsql_sqlite.cpp
 ===================================================================
 --- src/sql/drivers/sqlite/qsql_sqlite.cpp	(revision 12931)
-+++ src/sql/drivers/sqlite/qsql_sqlite.cpp	(revision 16271)
++++ src/sql/drivers/sqlite/qsql_sqlite.cpp	(revision 22411)
 @@ -714,4 +714,9 @@
      return _q_escapeIdentifier(identifier);
  }
@@ -200,7 +200,7 @@ Index: src/sql/drivers/sqlite/qsql_sqlite.cpp
 Index: src/sql/drivers/sqlite/qsql_sqlite.h
 ===================================================================
 --- src/sql/drivers/sqlite/qsql_sqlite.h	(revision 12931)
-+++ src/sql/drivers/sqlite/qsql_sqlite.h	(revision 16271)
++++ src/sql/drivers/sqlite/qsql_sqlite.h	(revision 22411)
 @@ -112,6 +112,8 @@
      QVariant handle() const;
      QString escapeIdentifier(const QString &identifier, IdentifierType) const;
@@ -213,7 +213,7 @@ Index: src/sql/drivers/sqlite/qsql_sqlite.h
 Index: src/3rdparty/freetype/include/freetype/config/ftconfig.h
 ===================================================================
 --- src/3rdparty/freetype/include/freetype/config/ftconfig.h	(revision 12931)
-+++ src/3rdparty/freetype/include/freetype/config/ftconfig.h	(revision 16271)
++++ src/3rdparty/freetype/include/freetype/config/ftconfig.h	(revision 22411)
 @@ -327,7 +327,7 @@
        "adds   %1, %1, %0\n\t"       /* %1 += %0 */
        "adc    %2, %2, #0\n\t"       /* %2 += carry */
@@ -223,10 +223,315 @@ Index: src/3rdparty/freetype/include/freetype/config/ftconfig.h
        : "=r"(a), "=&r"(t2), "=&r"(t)
        : "r"(a), "r"(b) );
      return a;
+Index: src/3rdparty/webkit/WebKit/qt/Api/qwebpage.h
+===================================================================
+--- src/3rdparty/webkit/WebKit/qt/Api/qwebpage.h	(revision 12931)
++++ src/3rdparty/webkit/WebKit/qt/Api/qwebpage.h	(revision 22411)
+@@ -199,7 +199,16 @@
+ 
+     QWebHistory *history() const;
+     QWebSettings *settings() const;
++    
++    void selectWordAtPoint(QPoint point, QRect bounds, bool selectLettersOnly);
++    void clearSelection();
+ 
++	void expandSelectionRight(QRect bounds);
++	void expandSelectionLeft(QRect bounds);
++	void expandSelectionUp(QRect bounds);
++	void expandSelectionDown(QRect bounds);
++
++
+     void setView(QWidget *view);
+     QWidget *view() const;
+ 
+@@ -230,6 +239,7 @@
+     quint64 bytesReceived() const;
+ 
+     QString selectedText() const;
++    int selectedWordHeight() const;
+ 
+     QAction *action(WebAction action) const;
+     virtual void triggerAction(WebAction action, bool checked = false);
+Index: src/3rdparty/webkit/WebKit/qt/Api/qwebframe.h
+===================================================================
+--- src/3rdparty/webkit/WebKit/qt/Api/qwebframe.h	(revision 12931)
++++ src/3rdparty/webkit/WebKit/qt/Api/qwebframe.h	(revision 22411)
+@@ -121,6 +121,7 @@
+ 
+ public:
+     QWebPage *page() const;
++    QList<QRect> renderTreeRunRects();
+ 
+     void load(const QUrl &url);
+ #if QT_VERSION < 0x040400
+Index: src/3rdparty/webkit/WebKit/qt/Api/qwebpage.cpp
+===================================================================
+--- src/3rdparty/webkit/WebKit/qt/Api/qwebpage.cpp	(revision 12931)
++++ src/3rdparty/webkit/WebKit/qt/Api/qwebpage.cpp	(revision 22411)
+@@ -40,6 +40,7 @@
+ #include "FormState.h"
+ #include "ApplicationCacheStorage.h"
+ #include "ChromeClientQt.h"
++#include "ClientRect.h"
+ #include "ContextMenu.h"
+ #include "ContextMenuClientQt.h"
+ #include "DocumentLoader.h"
+@@ -67,11 +68,13 @@
+ #include "ProgressTracker.h"
+ #include "RefPtr.h"
+ #include "RenderTextControl.h"
++#include "RenderView.h"
+ #include "TextIterator.h"
+ #include "HashMap.h"
+ #include "HTMLFormElement.h"
+ #include "HTMLInputElement.h"
+ #include "HTMLNames.h"
++#include "HitTestRequest.h"
+ #include "HitTestResult.h"
+ #include "WindowFeatures.h"
+ #include "LocalizedStrings.h"
+@@ -2174,6 +2177,76 @@
+     return d->page->focusController()->focusedOrMainFrame()->selectedText();
+ }
+ 
++int QWebPage::selectedWordHeight() const {
++	return (int)d->page->focusController()->focusedOrMainFrame()->selection()->toNormalizedRange().get()->getBoundingClientRect().get()->height();
++}
++
++static SelectionController::EDirection opposite(SelectionController::EDirection dir) {
++	if (dir == SelectionController::RIGHT)
++		return SelectionController::LEFT;
++	else if (dir == SelectionController::LEFT)
++		return SelectionController::RIGHT;
++	else if (dir == SelectionController::FORWARD)
++		return SelectionController::BACKWARD;
++	else
++		return SelectionController::FORWARD;
++}
++
++static void expandSelection(QWebPagePrivate *d, SelectionController::EDirection dir, TextGranularity granularity, QRect bounds) {
++	Frame *frame = d->page->focusController()->focusedOrMainFrame();
++	bool modified = frame->selection()->modify(SelectionController::EXTEND, dir, granularity);
++	IntRect newSelectionRect = frame->document()->renderView()->selectionBounds(false);
++	if (!bounds.contains(newSelectionRect)) {
++		frame->selection()->modify(SelectionController::EXTEND, opposite(dir), granularity);		
++	}
++}
++
++void QWebPage::expandSelectionRight(QRect bounds) {
++	expandSelection(d, SelectionController::RIGHT, WordGranularity, bounds);
++}
++
++void QWebPage::expandSelectionLeft(QRect bounds) {
++	expandSelection(d, SelectionController::LEFT, WordGranularity, bounds);
++}
++
++void QWebPage::expandSelectionUp(QRect bounds) {
++	expandSelection(d, SelectionController::BACKWARD, LineGranularity, bounds);
++}
++
++void QWebPage::expandSelectionDown(QRect bounds) {
++	expandSelection(d, SelectionController::FORWARD, LineGranularity, bounds);
++}
++
++//If selectOnlyLetters == true the selection will be modified to discard non letters.
++//This causes a performance hit though, so it should only be used for the final selecting
++void QWebPage::selectWordAtPoint(QPoint docPoint, QRect bounds, bool selectOnlyLetters) {
++	d->createMainFrame();
++	Frame *frame = d->page->focusController()->focusedOrMainFrame();
++	IntPoint point(docPoint.x(),docPoint.y());
++	HitTestRequest request(HitTestRequest::ReadOnly | HitTestRequest::Active);
++	HitTestResult result(point);
++	frame->document()->renderView()->layer()->hitTest(request, result);
++	Node* innerNode = result.innerNode();
++	if (innerNode && innerNode->renderer()) {
++		VisiblePosition pos(innerNode->renderer()->positionForPoint(result.localPoint()));
++		VisibleSelection newSelection(selectOnlyLetters);
++		if (pos.isNotNull()) {
++			newSelection = VisibleSelection(pos, selectOnlyLetters);
++			newSelection.expandUsingGranularity(WordGranularity);
++		}
++		if (newSelection.isRange()) {
++			frame->setSelectionGranularity(WordGranularity);
++
++		}
++		frame->selection()->setSelection(newSelection);
++	}
++}
++
++void QWebPage::clearSelection() {
++	Frame *frame = d->page->focusController()->focusedOrMainFrame();
++	frame->selection()->clear();
++}
++
+ /*!
+    Returns a QAction for the specified WebAction \a action.
+ 
+Index: src/3rdparty/webkit/WebKit/qt/Api/qwebframe.cpp
+===================================================================
+--- src/3rdparty/webkit/WebKit/qt/Api/qwebframe.cpp	(revision 12931)
++++ src/3rdparty/webkit/WebKit/qt/Api/qwebframe.cpp	(revision 22411)
+@@ -1826,3 +1826,17 @@
+         return 0;
+     return d->frame;
+ }
++
++namespace WebCore{
++	QList<QRect> getRunRects(RenderObject*);
++}
++
++QList<QRect> QWebFrame::renderTreeRunRects()
++{
++    if (d->frame->view() && d->frame->view()->layoutPending())
++        d->frame->view()->layout();
++
++	RenderObject* o = d->frame->contentRenderer();
++
++	return WebCore::getRunRects(o);
++}
+Index: src/3rdparty/webkit/WebCore/platform/graphics/GraphicsContext.cpp
+===================================================================
+--- src/3rdparty/webkit/WebCore/platform/graphics/GraphicsContext.cpp	(revision 12931)
++++ src/3rdparty/webkit/WebCore/platform/graphics/GraphicsContext.cpp	(revision 22411)
+@@ -31,6 +31,9 @@
+ #include "Generator.h"
+ #include "GraphicsContextPrivate.h"
+ 
++// gross...
++#include <QSettings>
++
+ using namespace std;
+ 
+ namespace WebCore {
+@@ -374,8 +377,18 @@
+ {
+     if (paintingDisabled())
+         return;
+-
+-    fillRect(font.selectionRectForText(run, point, h, from, to), backgroundColor);
++    QSettings settings;
++    if (settings.value("selectionStyle", "underline") == "underline") {
++		FloatRect rect(font.selectionRectForText(run, point, h, from, to));
++		rect.setY(rect.y() + rect.height() - 2);
++		rect.setHeight(2);
++		rect.setWidth(rect.width() - 1);
++		Color color(0,0,0);
++		fillRect(rect, color);
++	}
++	else {
++		fillRect(font.selectionRectForText(run, point, h, from, to), backgroundColor);
++	}
+ }
+ 
+ void GraphicsContext::initFocusRing(int width, int offset)
+Index: src/3rdparty/webkit/WebCore/rendering/RenderObject.cpp
+===================================================================
+--- src/3rdparty/webkit/WebCore/rendering/RenderObject.cpp	(revision 12931)
++++ src/3rdparty/webkit/WebCore/rendering/RenderObject.cpp	(revision 22411)
+@@ -1346,7 +1346,9 @@
+     if (style()->userSelect() != SELECT_NONE) {
+          RefPtr<RenderStyle> pseudoStyle = getUncachedPseudoStyle(SELECTION);
+         if (pseudoStyle && pseudoStyle->backgroundColor().isValid())
+-            color = pseudoStyle->backgroundColor().blendWithWhite();
++			// HACK: we don't want this to be blended with white on the Nickel, because we want our selections
++			// to actually be white, instead of off-white
++            color = pseudoStyle->backgroundColor();//.blendWithWhite();
+         else
+             color = document()->frame()->selection()->isFocusedAndActive() ?
+                     theme()->activeSelectionBackgroundColor() :
+Index: src/3rdparty/webkit/WebCore/rendering/RenderTreeAsText.cpp
+===================================================================
+--- src/3rdparty/webkit/WebCore/rendering/RenderTreeAsText.cpp	(revision 12931)
++++ src/3rdparty/webkit/WebCore/rendering/RenderTreeAsText.cpp	(revision 22411)
+@@ -581,4 +581,84 @@
+     return stream.release();
+ }
+ 
++
++
++static void getRunRectsRecursively(QList<QRect>& out, const RenderObject& o/*, int indent*/)
++{
++    /* Figure out what the runs' positions are relative to. */
++    QPoint origin;
++    if (RenderBlock* block = o.containingBlock()) {
++        FloatPoint absPos = block->localToAbsolute(FloatPoint());
++        origin.setX(absPos.x());
++        origin.setY(absPos.y());
++    }
++
++    if (o.isText() && !o.isBR()) {
++        const RenderText& text = *toRenderText(&o);
++        for (InlineTextBox* box = text.firstTextBox(); box; box = box->nextTextBox())
++        {
++            InlineTextBox& run = *box;
++
++            int dy = 0;
++            if (o.containingBlock()->isTableCell())
++                dy = toRenderTableCell(o.containingBlock())->intrinsicPaddingTop();
++            QRect r(run.m_x+origin.x(), run.m_y+origin.y(), run.m_width, run.height());
++            out.append(r);
++        }
++    }
++
++    for (RenderObject* child = o.firstChild(); child; child = child->nextSibling()) {
++        if (child->hasLayer())
++            continue;
++        getRunRectsRecursively(out, *child);
++    }
++}
++
++static void getRunRectsForAllLayers(
++    QList<QRect>& out,
++    RenderLayer* l)
++{
++    /* heavily based on writeLayers, mostly without any understanding of what "layers" even are. */
++
++    // Ensure our lists are up-to-date.
++    l->updateZOrderLists();
++    l->updateNormalFlowList();
++
++    Vector<RenderLayer*>* negList = l->negZOrderList();
++    if (negList) {
++        for (unsigned i = 0; i != negList->size(); ++i)
++            getRunRectsForAllLayers(out, negList->at(i));
++    }
++
++    getRunRectsRecursively(out, *l->renderer());
++
++    Vector<RenderLayer*>* normalFlowList = l->normalFlowList();
++    if (normalFlowList) {
++        for (unsigned i = 0; i != normalFlowList->size(); ++i)
++            getRunRectsForAllLayers(out, normalFlowList->at(i));
++    }
++
++    Vector<RenderLayer*>* posList = l->posZOrderList();
++    if (posList) {
++        for (unsigned i = 0; i != posList->size(); ++i)
++            getRunRectsForAllLayers(out, posList->at(i));
++    }
++}
++
++
++QList<QRect> getRunRects(RenderObject* o)
++{
++    if (o->view()->frameView())
++        o->view()->frameView()->layout();
++
++    QList<QRect> ret;
++    if (o->hasLayer()) {
++        RenderLayer* l = toRenderBox(o)->layer();
++        getRunRectsForAllLayers(ret, l);
++    }
++
++    return ret;
++}
++
++
+ } // namespace WebCore
 Index: src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp
 ===================================================================
 --- src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp	(revision 12931)
-+++ src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp	(revision 16271)
++++ src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp	(revision 22411)
 @@ -745,6 +745,8 @@
              if (o->isText()) {
                  RenderText* text = toRenderText(o);
@@ -236,3 +541,232 @@ Index: src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp
                  point.move(linesBox.x() + linesBox.width(), linesBox.y() + linesBox.height());
              } else {
                  RenderBox* box = toRenderBox(o);
+Index: src/3rdparty/webkit/WebCore/dom/Range.cpp
+===================================================================
+--- src/3rdparty/webkit/WebCore/dom/Range.cpp	(revision 12931)
++++ src/3rdparty/webkit/WebCore/dom/Range.cpp	(revision 22411)
+@@ -1417,7 +1417,7 @@
+     // although this will fail below for another reason).
+     if (parentOfNewParent->isCharacterDataNode())
+         parentOfNewParent = parentOfNewParent->parentNode();
+-    if (!parentOfNewParent->childTypeAllowed(newParent->nodeType())) {
++    if (!parentOfNewParent || !parentOfNewParent->childTypeAllowed(newParent->nodeType())) {
+         ec = HIERARCHY_REQUEST_ERR;
+         return;
+     }
+Index: src/3rdparty/webkit/WebCore/editing/VisibleSelection.h
+===================================================================
+--- src/3rdparty/webkit/WebCore/editing/VisibleSelection.h	(revision 12931)
++++ src/3rdparty/webkit/WebCore/editing/VisibleSelection.h	(revision 22411)
+@@ -41,6 +41,8 @@
+ 
+     VisibleSelection();
+ 
++    VisibleSelection(bool selectOnlyLetters);
++
+     VisibleSelection(const Position&, EAffinity);
+     VisibleSelection(const Position&, const Position&, EAffinity = SEL_DEFAULT_AFFINITY);
+ 
+@@ -48,6 +50,7 @@
+     
+     VisibleSelection(const VisiblePosition&);
+     VisibleSelection(const VisiblePosition&, const VisiblePosition&);
++    VisibleSelection(const VisiblePosition&, bool selectOnlyLetters);
+ 
+     static VisibleSelection selectionFromContentsOfNode(Node*);
+ 
+@@ -105,6 +108,8 @@
+ 
+     void setWithoutValidation(const Position&, const Position&);
+ 
++    void setSelectOnlyLetters(bool selectOnlyLetters) const { m_selectOnlyLetters = selectOnlyLetters; }
++
+ private:
+     void validate();
+ 
+@@ -126,6 +131,8 @@
+     // these are cached, can be recalculated by validate()
+     SelectionType m_selectionType;    // None, Caret, Range
+     bool m_baseIsFirst;               // true if base is before the extent
++
++    mutable bool m_selectOnlyLetters;
+ };
+ 
+ inline bool operator==(const VisibleSelection& a, const VisibleSelection& b)
+Index: src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp
+===================================================================
+--- src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp	(revision 12931)
++++ src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp	(revision 22411)
+@@ -39,6 +39,9 @@
+ #include <wtf/Assertions.h>
+ #include <stdio.h>
+ 
++#include <Text.h>
++#include <QChar>
++
+ namespace WebCore {
+ 
+ VisibleSelection::VisibleSelection()
+@@ -46,14 +49,25 @@
+     , m_granularity(CharacterGranularity)
+     , m_selectionType(NoSelection)
+     , m_baseIsFirst(true)
++    , m_selectOnlyLetters(false)
+ {
+ }
+ 
++VisibleSelection::VisibleSelection(bool selectOnlyLetters)
++    : m_affinity(DOWNSTREAM)
++    , m_granularity(CharacterGranularity)
++    , m_selectionType(NoSelection)
++    , m_baseIsFirst(true)
++    , m_selectOnlyLetters(selectOnlyLetters)
++{
++}
++
+ VisibleSelection::VisibleSelection(const Position& pos, EAffinity affinity)
+     : m_base(pos)
+     , m_extent(pos)
+     , m_affinity(affinity)
+     , m_granularity(CharacterGranularity)
++    , m_selectOnlyLetters(false)
+ {
+     validate();
+ }
+@@ -63,6 +77,7 @@
+     , m_extent(extent)
+     , m_affinity(affinity)
+     , m_granularity(CharacterGranularity)
++    , m_selectOnlyLetters(false)
+ {
+     validate();
+ }
+@@ -72,15 +87,29 @@
+     , m_extent(pos.deepEquivalent())
+     , m_affinity(pos.affinity())
+     , m_granularity(CharacterGranularity)
++    , m_selectOnlyLetters(false)
+ {
+     validate();
+ }
+ 
++
++VisibleSelection::VisibleSelection(const VisiblePosition& pos, bool selectOnlyLetters)
++    : m_base(pos.deepEquivalent())
++    , m_extent(pos.deepEquivalent())
++    , m_affinity(pos.affinity())
++    , m_granularity(CharacterGranularity)
++    , m_selectOnlyLetters(selectOnlyLetters)
++{
++    validate();
++}
++
++
+ VisibleSelection::VisibleSelection(const VisiblePosition& base, const VisiblePosition& extent)
+     : m_base(base.deepEquivalent())
+     , m_extent(extent.deepEquivalent())
+     , m_affinity(base.affinity())
+     , m_granularity(CharacterGranularity)
++    , m_selectOnlyLetters(false)
+ {
+     validate();
+ }
+@@ -90,6 +119,7 @@
+     , m_extent(range->endPosition())
+     , m_affinity(affinity)
+     , m_granularity(CharacterGranularity)
++    , m_selectOnlyLetters(false)
+ {
+     validate();
+ }
+@@ -321,6 +351,34 @@
+             }
+                 
+             m_end = end.deepEquivalent();
++		
++            //added this to select only letters for dictionary viewing
++            if( m_selectOnlyLetters && m_start.anchorNode()->isTextNode() && m_end.anchorNode()->isTextNode() ) {
++
++                CharacterData* text = static_cast<CharacterData*>(m_start.anchorNode());
++                String s = text->data();                
++                
++                int n1 = m_start.offsetInContainerNode();
++                int n2 = m_end.offsetInContainerNode() - 1;
++
++                //unhandled corner case: at beginning of sentence, m_start may refer
++                //to the Node of the last sentence, this causes the space at the beginning
++                //of a sentence to be part of the selection. Assigning m_end to m_start and
++                //adjusting the offset does not fix this. 		
++
++                QChar c1 = s[n1];
++                QChar c2 = s[n2];
++
++                while(!c1.isLetter() && n1 <= n2) {
++                    c1 = s[++n1];
++                    m_start = m_start.next(Character);
++                }
++
++                while(!c2.isLetter() && n2 >= n1) {
++                    c2 = s[--n2];
++                    m_end = m_end.previous(Character);
++                }
++            }
+             break;
+         }
+         case SentenceGranularity: {
+Index: src/3rdparty/sqlite/sqlite3.c
+===================================================================
+--- src/3rdparty/sqlite/sqlite3.c	(revision 12931)
++++ src/3rdparty/sqlite/sqlite3.c	(revision 22411)
+@@ -48465,17 +48465,17 @@
+ ** request, then increment *pnByte by the amount of the request.
+ */
+ static void allocSpace(
+-  char *pp,            /* IN/OUT: Set *pp to point to allocated buffer */
++  void **pp,           /* IN/OUT: Set *pp to point to allocated buffer */
+   int nByte,           /* Number of bytes to allocate */
+   u8 **ppFrom,         /* IN/OUT: Allocate from *ppFrom */
+   u8 *pEnd,            /* Pointer to 1 byte past the end of *ppFrom buffer */
+   int *pnByte          /* If allocation cannot be made, increment *pnByte */
+ ){
+   assert( EIGHT_BYTE_ALIGNMENT(*ppFrom) );
+-  if( (*(void**)pp)==0 ){
++  if( (*pp)==0 ){
+     nByte = ROUND8(nByte);
+     if( &(*ppFrom)[nByte] <= pEnd ){
+-      *(void**)pp = (void *)*ppFrom;
++      *pp = (void *)*ppFrom;
+       *ppFrom += nByte;
+     }else{
+       *pnByte += nByte;
+@@ -48552,14 +48552,25 @@
+     assert( EIGHT_BYTE_ALIGNMENT(zCsr) );
+ 
+     do {
++      void *pp;
+       nByte = 0;
+-      allocSpace((char*)&p->aMem, nMem*sizeof(Mem), &zCsr, zEnd, &nByte);
+-      allocSpace((char*)&p->aVar, nVar*sizeof(Mem), &zCsr, zEnd, &nByte);
+-      allocSpace((char*)&p->apArg, nArg*sizeof(Mem*), &zCsr, zEnd, &nByte);
+-      allocSpace((char*)&p->azVar, nVar*sizeof(char*), &zCsr, zEnd, &nByte);
+-      allocSpace((char*)&p->apCsr, 
++      pp = p->aMem;
++      allocSpace(&pp, nMem*sizeof(Mem), &zCsr, zEnd, &nByte);
++      p->aMem = pp;
++      pp = p->aVar;
++      allocSpace(&pp, nVar*sizeof(Mem), &zCsr, zEnd, &nByte);
++      p->aVar = pp;
++      pp = p->apArg;
++      allocSpace(&pp, nArg*sizeof(Mem*), &zCsr, zEnd, &nByte);
++      p->apArg = pp;
++      pp = p->azVar;
++      allocSpace(&pp, nVar*sizeof(char*), &zCsr, zEnd, &nByte);
++      p->azVar = pp;
++      pp = p->apCsr;
++      allocSpace(&pp,
+                  nCursor*sizeof(VdbeCursor*), &zCsr, zEnd, &nByte
+       );
++      p->apCsr = pp;
+       if( nByte ){
+         p->pFree = sqlite3DbMallocZero(db, nByte);
+       }

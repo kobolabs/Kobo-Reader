@@ -1,0 +1,12 @@
+--- wpa_supplicant-0.7.1/wpa_supplicant/.config	2010-01-16 12:04:38.000000000 -0500
++++ wpa_supplicant-0.7.1/wpa_supplicant/.config	2010-12-02 21:14:48.088664000 -0500
+@@ -376,7 +376,8 @@
+ #CONFIG_IEEE80211R=y
+ 
+ # Add support for writing debug log to a file (/tmp/wpa_supplicant-log-#.txt)
+-#CONFIG_DEBUG_FILE=y
++CONFIG_DEBUG_FILE=y
++CONFIG_DEBUG_SYSLOG=y
+ 
+ # Enable privilege separation (see README 'Privilege separation' for details)
+ #CONFIG_PRIVSEP=y

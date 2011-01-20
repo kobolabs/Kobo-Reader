@@ -1,0 +1,12 @@
+diff -ru unrtf_0.20.4-old/configure unrtf_0.20.4/configure
+--- unrtf_0.20.4-old/configure	2007-06-28 21:52:18.000000000 -0400
++++ unrtf_0.20.4/configure	2010-10-04 15:21:18.516428811 -0400
+@@ -3850,10 +3850,6 @@
+ esac
+ 
+ 
+-cat >>confdefs.h <<\_ACEOF
+-#define malloc rpl_malloc
+-_ACEOF
+-
+ fi

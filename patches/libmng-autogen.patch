@@ -1,0 +1,10 @@
+--- autogen.sh	2005-01-30 05:28:00.000000000 -0500
++++ autogen-fixed.sh	2011-01-04 16:13:50.880854961 -0500
+@@ -44,7 +44,4 @@
+ echo "building configure script"
+ autoconf
+ 
+-# and finally invoke our new configure
+-./configure $*
+-
+ # end

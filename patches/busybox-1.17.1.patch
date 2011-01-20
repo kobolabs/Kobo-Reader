@@ -1,0 +1,46 @@
+diff -ur busybox-1.17.1-old/include/applets.src.h busybox-1.17.1/include/applets.src.h
+--- busybox-1.17.1-old/include/applets.src.h	2010-07-24 18:12:43.000000000 -0400
++++ busybox-1.17.1/include/applets.src.h	2010-08-19 13:27:12.656744201 -0400
+@@ -260,7 +260,7 @@
+ IF_MKFS_EXT2(APPLET_ODDNAME(mke2fs, mkfs_ext2, _BB_DIR_SBIN, _BB_SUID_DROP, mkfs_ext2))
+ IF_MKFIFO(APPLET(mkfifo, _BB_DIR_USR_BIN, _BB_SUID_DROP))
+ IF_MKFS_EXT2(APPLET_ODDNAME(mkfs.ext2, mkfs_ext2, _BB_DIR_SBIN, _BB_SUID_DROP, mkfs_ext2))
+-//IF_MKE2FS(APPLET_ODDNAME(mkfs.ext3, mke2fs, _BB_DIR_SBIN, _BB_SUID_DROP, mkfs_ext3))
++IF_MKFS_EXT2(APPLET_ODDNAME(mkfs.ext3, mkfs_ext2, _BB_DIR_SBIN, _BB_SUID_DROP, mkfs_ext3))
+ IF_MKFS_MINIX(APPLET_ODDNAME(mkfs.minix, mkfs_minix, _BB_DIR_SBIN, _BB_SUID_DROP, mkfs_minix))
+ IF_MKFS_REISER(APPLET_ODDNAME(mkfs.reiser, mkfs_reiser, _BB_DIR_SBIN, _BB_SUID_DROP, mkfs_reiser))
+ IF_MKFS_VFAT(APPLET_ODDNAME(mkfs.vfat, mkfs_vfat, _BB_DIR_SBIN, _BB_SUID_DROP, mkfs_vfat))
+diff -ur busybox-1.17.1-old/include/usage.src.h busybox-1.17.1/include/usage.src.h
+--- busybox-1.17.1-old/include/usage.src.h	2010-07-24 18:12:43.000000000 -0400
++++ busybox-1.17.1/include/usage.src.h	2010-08-19 13:25:55.828751691 -0400
+@@ -2759,6 +2759,9 @@
+ /*   "\n	-T fs-type	Set usage type (news/largefile/largefile4)" */ \
+ /*   "\n	-v		Verbose" */ \
+ 
++#define mkfs_ext3_trivial_usage mkfs_ext2_trivial_usage
++#define mkfs_ext3_full_usage mkfs_ext2_full_usage
++
+ #define mkfs_minix_trivial_usage \
+        "[-c | -l FILE] [-nXX] [-iXX] BLOCKDEV [KBYTES]"
+ #define mkfs_minix_full_usage "\n\n" \
+diff -ur busybox-1.17.1-old/networking/ntpd.c busybox-1.17.1/networking/ntpd.c
+--- busybox-1.17.1-old/networking/ntpd.c	2010-07-05 22:25:54.000000000 -0400
++++ busybox-1.17.1/networking/ntpd.c	2010-09-27 20:47:12.309208696 -0400
+@@ -1280,6 +1280,8 @@
+ 		 */
+ 		VERB3 bb_error_msg("stepping time by %f; poll_exp=MINPOLL", offset);
+ 		step_time(offset);
++		run_script("step", offset);
++
+ 		if (option_mask32 & OPT_q) {
+ 			/* We were only asked to set time once. Done. */
+ 			exit(0);
+@@ -1289,8 +1291,6 @@
+ 		G.poll_exp = MINPOLL;
+ 		G.stratum = MAXSTRAT;
+ 
+-		run_script("step", offset);
+-
+ #if USING_INITIAL_FREQ_ESTIMATION
+ 		if (G.discipline_state == STATE_NSET) {
+ 			set_new_values(STATE_FREQ, /*offset:*/ 0, recv_time);

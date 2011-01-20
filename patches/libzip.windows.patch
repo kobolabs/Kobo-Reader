@@ -158,7 +158,7 @@ diff -urN libzip-0.9.3.clean/lib/libzip-vc9.vcproj libzip-0.9.3/lib/libzip-vc9.v
 +			<Tool
 +				Name="VCCLCompilerTool"
 +				AdditionalIncludeDirectories="&quot;..\..\qt-everywhere-opensource-src-4.6.2\src\3rdparty\zlib&quot;;&quot;..\..\qt-everywhere-opensource-src-4.6.2\include\Qt&quot;"
-+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBZIPVC9_EXPORTS;ZLIB_WINAPI"
++				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;LIBZIPVC9_EXPORTS"
 +				RuntimeLibrary="2"
 +				UsePrecompiledHeader="0"
 +				WarningLevel="3"
