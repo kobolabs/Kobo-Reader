@@ -1,6 +1,9 @@
 This repository contains the open source packages and patches that are used
 on the Kobo Reader and Kobo Desktop applications.
 
+fickel/		This is the source code for a daemon process that dispatches
+		events from iwlib to a named pipe that the Kobo Wireless Reader
+		listens on.
 netronix/       This contains the source code for the Linux kernel and U-Boot
                 used on the Kobo Reader.
 packages/       This contains the source code for the application stack used
