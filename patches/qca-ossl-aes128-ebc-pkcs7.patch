@@ -4,7 +4,7 @@
  {
  	QStringList list;
  	list += "aes128-ecb";
--	list += "aes128-ecb-pkcs7";
++	list += "aes128-ecb-pkcs7";
  	list += "aes128-cfb";
  	list += "aes128-cbc";
  	list += "aes128-cbc-pkcs7";
@@ -12,8 +12,8 @@
  			return new opensslHMACContext( EVP_ripemd160(), this, type );
  		else if ( type == "aes128-ecb" )
  			return new opensslCipherContext( EVP_aes_128_ecb(), 0, this, type);
--		else if ( type == "aes128-ecb-pkcs7" )
--			return new opensslCipherContext( EVP_aes_128_ecb(), 1, this, type);
++		else if ( type == "aes128-ecb-pkcs7" )
++			return new opensslCipherContext( EVP_aes_128_ecb(), 1, this, type);
  		else if ( type == "aes128-cfb" )
  			return new opensslCipherContext( EVP_aes_128_cfb(), 0, this, type);
  		else if ( type == "aes128-cbc" )
