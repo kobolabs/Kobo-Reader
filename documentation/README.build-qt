@@ -1,0 +1,17 @@
+Read README.build first.
+
+After you've done that, you're ready to build up Qt 4.6.2.  You really only need it for linking purposes.
+
+1. tar zxf <path to Kobo-Reader/packages> qt-everywhere-opensource-src-4.6.2.tar.gz
+1. mkdir qt-arm
+2. cd qt-arm
+3. run <path to Kobo-Reader/config>/linux-arm-codesourcery-config.status
+4. on error, figure out build dependencies and goto 3.
+5. make
+6. make install
+
+This will install Qt 4.6.2 into /usr/local/Trolltech/QtEmbedded-4.6.2-arm.
+
+To build your sample application use /usr/local/Trolltech/QtEmbedded-4.6.2-arm/bin/qmake on your project file.
+
+Using the wrong qmake will result in a binary that is not cross compiled using the CodeSourcery toolchain.
