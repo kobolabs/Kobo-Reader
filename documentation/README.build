@@ -1,0 +1,19 @@
+Steps to making a working development environment:
+
+1. apt-get install gettext autoconf libglib2.0-dev
+2. sudo mkdir /chroot
+3. sudo chown me.me /chroot - where 'me' is you, and by you we mean your username.
+4. go into the 'build' directory and run './build-all.sh'. 
+5. watch for errors in this script.  on error, fix dependencies, goto 3.
+
+NOTE: 'sudo' is used sparingly.  Please do not run everything as root.
+NOTE: backup your important stuff before doing any of this.
+
+This will give you a cross compiled environment located in /chroot.
+
+When cross compiling your plugin you need to reference the headers and libraries
+in this directory by saying something like the following in your Qt .pro file:
+
+INCLUDEPATH += /chroot/usr/local/include
+LIBS += -L/chroot/usr/local/lib
+
