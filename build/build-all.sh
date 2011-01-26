@@ -24,7 +24,6 @@ for i in \
 	acl \
 	pciids \
 	udev \
-	tslib \
 	lcms \
 	libmng \
 ; do
