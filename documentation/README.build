@@ -6,6 +6,8 @@ Steps to making a working development environment:
 4. go into the 'build' directory and run './build-all.sh'. 
 5. watch for errors in this script.  on error, fix dependencies, goto 3.
 
+NOTE: this script assumes success because we're very successful.  If the script fails
+for whatever reason then you will NOT have a working environment.  Eagle eyes.
 NOTE: 'sudo' is used sparingly.  Please do not run everything as root.
 NOTE: backup your important stuff before doing any of this.
 
