@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ln -s ../packages packages
+
 pushd scripts
 
 for i in \
