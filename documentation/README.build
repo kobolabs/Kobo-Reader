@@ -1,23 +1,39 @@
-Steps to making a working development environment:
+Steps to making a working development environment.
 
-1. apt-get install gettext autoconf libglib2.0-dev
-2. sudo mkdir /chroot
-3. sudo chown `id -nu`.`id -ng` /chroot
-4. go into the 'build' directory and run './build-all.sh'. 
-5. watch for errors in this script.  on error, fix dependencies, goto 3.
+These instructions assume that your KoboLabs checkout is in ~/kobo/KoboLabs.
+Adjust the KOBOLABS variable if yours is somewhere else. This series of shell
+commands will compile everything in your home directory, placing the arm binaries
+in ~/kobo/fs and doing the compilation work in ~/kobo/tmp . The Qt Embedded tools
+for the kobo will be placed in ~/kobo/qt .
 
-NOTE: this script assumes success because we're very successful.  If the script fails
-for whatever reason then you will NOT have a working environment.  Eagle eyes.
-NOTE: 'sudo' is used sparingly.  Please do not run everything as root.
-NOTE: backup your important stuff before doing any of this.
 
-This will give you a cross compiled environment located in /chroot.
+sudo apt-get install gettext autoconf libglib2.0-dev
+KOBOLABS=$HOME/kobo/KoboLabs
+mkdir -p ~/kobo/fs ~/kobo/tmp
+cat > ~/kobo/KoboLabs/build/build-config-user.sh <<__END__
+DEVICEROOT=$HOME/kobo/KoboLabs
+QT_EXTRA_ARGS=$HOME/kobo/qt
+__END__
+cd ~/kobo/tmp
+~/kobo/KoboLabs/build/build-all.sh
 
-NOTE: You can do a build without any root privs by creating an empty directory,
-cd'ing into it, and running /path/to/build.sh from there. This keeps your git
-working directory clean of build files and makes cleaning your build dir as easy
-as "rm -rf".
+If you want to change the paths, edit build/build-config-user.sh appropriately.
+A full list of variables you can override is in build/build-config.sh.
 
+None of thise needs to be, or should be, run as root. If you want to install your
+binaries somewhere only root can write to, give yourself ownership of it first with
+something like:
+
+  sudo mkdir /chroot
+  sudo chown `id -nu`:`id -gu` /chroot
+
+.. then proceed as a normal user, like before.
+
+NOTE: backup your important stuff before doing any of this. Consider running a
+separate build user without access rights to your files, just to be safe.
+
+BUILDING QT PLUGINS FOR THE KOBO
+================================
 
 When cross compiling a Qt plugin for nickel you need to reference the headers
 and libraries in this directory by saying something like the following in your
@@ -26,3 +42,7 @@ Qt .pro file:
 INCLUDEPATH += /chroot/usr/local/include
 LIBS += -L/chroot/usr/local/lib
 
+To build your sample application use
+/usr/local/Trolltech/QtEmbedded-4.6.2-arm/bin/qmake on your project file.
+Using the wrong qmake will result in a binary that is not cross compiled using
+the CodeSourcery toolchain.

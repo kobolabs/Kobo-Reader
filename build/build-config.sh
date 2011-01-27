@@ -32,3 +32,6 @@ LDFLAGS=${LDFLAGS:-"${LIBS}"}
 
 LIBTOOL=${LIBTOOL:-"${DEVICEROOT}/usr/local/bin/arm-linux-libtool"}
 CC=${CC:-"${CROSSTARGET}-gcc"}
+
+# Qt options are empty by default, but may be overridden by the user.
+QT_EXTRA_ARGS="${QT_EXTRA_ARGS:-}"

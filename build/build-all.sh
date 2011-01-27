@@ -39,7 +39,12 @@ for i in \
 	udev \
 	lcms \
 	libmng \
+	qt \
 ; do
+	if echo "${SKIP:-}" | grep -q \\\<"$i"\\\> ; then
+		echo "Building of $i suppressed by \$SKIP"
+		continue
+	fi
 	$KOBO_SCRIPT_DIR/scripts/$i.sh 2>&1 | tee $i.log
 	if test "${PIPESTATUS[0]}" -ne 0 ; then
 		echo "Build failed at $i.sh, aborting"
