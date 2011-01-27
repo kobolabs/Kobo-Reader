@@ -1,9 +1,15 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=wireless_tools.29.tar.gz
+ARCHIVEDIR=wireless_tools.29
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar zxf ../packages/wireless_tools.29.tar.gz
-pushd wireless_tools.29
-	cat Makefile | sed -e s/^CC\ =.*$/CC=arm-linux-gcc/g -e s/^RANLIB\ =.*$/RANLIB=arm-linux-ranlib/g -e s/^AR\ =.*$/AR=arm-linux-ar/g > Makefile.new
-	mv Makefile.new Makefile
-	make
-	make PREFIX=/chroot install
+pushd $ARCHIVEDIR
+	sed -i \
+		-e s/^CC\ =.*$/CC=${CROSSTARGET}-gcc/g \
+		-e s/^RANLIB\ =.*$/RANLIB=${CROSSTARGET}-ranlib/g \
+		-e s/^AR\ =.*$/AR=${CROSSTARGET}-ar/g Makefile
+	$MAKE -j$MAKE_JOBS
+	$MAKE PREFIX=/${DEVICEROOT} install
 popd
+markbuilt

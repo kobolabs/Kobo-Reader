@@ -1,8 +1,12 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=lcms-1.18a.tar.gz
+ARCHIVEDIR=lcms-1.18
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar zxf ../packages/lcms-1.18a.tar.gz
-pushd lcms-1.18
-	CPPFLAGS="-I/chroot/include" LDFLAGS="-L/chroot/lib" ./configure --prefix=/ --host=arm-linux
-	make
-	make DESTDIR=/chroot install
+pushd $ARCHIVEDIR
+	CPPFLAGS="-I/${DEVICEROOT}/include" LDFLAGS="-L/${DEVICEROOT}/lib" ./configure --prefix=/ --host=${CROSSTARGET}
+	$MAKE -j$MAKE_JOBS
+	$MAKE DESTDIR=/${DEVICEROOT} install
 popd
+markbuilt

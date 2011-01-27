@@ -1,8 +1,12 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=libxml2-2.7.6.tar.gz
+ARCHIVEDIR=libxml2-2.7.6
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar zxf ../packages/libxml2-2.7.6.tar.gz
-pushd libxml2-2.7.6
-	./configure --prefix=/usr --host=arm-linux --without-debug --without-docbook --without-fexceptions --without-history --without-mem-debug --without-python --without-coverage
-	make
-	make DESTDIR=/chroot install
+pushd $ARCHIVEDIR
+	./configure --prefix=/usr --host=${CROSSTARGET} --without-debug --without-docbook --without-fexceptions --without-history --without-mem-debug --without-python --without-coverage
+	$MAKE -j$MAKE_JOBS
+	$MAKE DESTDIR=/${DEVICEROOT} install
 popd
+markbuilt

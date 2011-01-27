@@ -1,10 +1,14 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=jpegsrc.v6b.tar.gz
+ARCHIVEDIR=jpeg-6b
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar zxf ../packages/jpegsrc.v6b.tar.gz
-pushd jpeg-6b
-	./configure --host=arm-linux --enable-shared --prefix=/chroot
-	cat Makefile | sed -e s/^CC=.*$/CC=arm-linux-gcc/g > Makefile.new
-	mv Makefile.new Makefile
-	make
-	make install
+patch -p0 < $PATCHESDIR/jpeg6b-config-sub.patch
+pushd $ARCHIVEDIR
+	./configure --host=${CROSSTARGET} --enable-shared --prefix=/${DEVICEROOT}
+	sed -i -e s/^CC=.*$/CC=${CC}/g Makefile
+	$MAKE -j$MAKE_JOBS
+	$MAKE install
 popd
+markbuilt

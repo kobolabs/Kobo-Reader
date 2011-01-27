@@ -1,7 +1,12 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=expat-2.0.1.tar.gz
+ARCHIVEDIR=expat-2.0.1
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar zxf ../packages/expat-2.0.1.tar.gz
-pushd expat-2.0.1
-	./configure --prefix=/ --host=arm-linux --disable-static
-	make && make DESTDIR=/chroot install
+pushd $ARCHIVEDIR
+	./configure --prefix=/ --host=${CROSSTARGET} --disable-static
+	$MAKE -j$MAKE_JOBS
+	$MAKE DESTDIR=/${DEVICEROOT} install
 popd
+markbuilt

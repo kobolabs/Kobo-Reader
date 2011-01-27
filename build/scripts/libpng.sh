@@ -1,8 +1,12 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=libpng-1.2.43.tar.gz
+ARCHIVEDIR=libpng-1.2.43
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar zxf ../packages/libpng-1.2.43.tar.gz
-pushd libpng-1.2.43
-	CPPFLAGS="-I/chroot/include" LDFLAGS="-L/chroot/lib" ./configure --with-libpng-compat --prefix=/ --host=arm-linux
-	make
-	make DESTDIR=/chroot install
+pushd $ARCHIVEDIR
+	CPPFLAGS="${CPPFLAGS}" LDFLAGS="${LDFLAGS}" ./configure --with-libpng-compat --prefix=/ --host=${CROSSTARGET}
+	$MAKE -j$MAKE_JOBS
+	$MAKE DESTDIR=/${DEVICEROOT} install
 popd
+markbuilt

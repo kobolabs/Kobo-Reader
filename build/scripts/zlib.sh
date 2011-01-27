@@ -1,8 +1,12 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=zlib-1.2.4.tar.bz2
+ARCHIVEDIR=zlib-1.2.4
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar jxf ../packages/zlib-1.2.4.tar.bz2
-pushd zlib-1.2.4
-	LD=arm-linux-ld CC=arm-linux-gcc ./configure --prefix=/
-	make
-	make DESTDIR=/chroot install
+pushd $ARCHIVEDIR
+	LD=${CROSSTARGET}-ld CC=${CC} ./configure --prefix=/
+	$MAKE -j$MAKE_JOBS
+	$MAKE DESTDIR=/${DEVICEROOT} install
 popd
+markbuilt

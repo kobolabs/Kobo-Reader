@@ -1,7 +1,12 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=libiconv-1.13.1.tar.gz
+ARCHIVEDIR=libiconv-1.13.1
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar zxf ../packages/libiconv-1.13.1.tar.gz 
-pushd libiconv-1.13.1
-	./configure --disable-rpath --prefix=/chroot --with-libiconv-prefix=/ --host=arm-linux
-	make && make install
+pushd $ARCHIVEDIR
+	./configure --disable-rpath --prefix=/${DEVICEROOT} --with-libiconv-prefix=/ --host=${CROSSTARGET}
+	$MAKE -j$MAKE_JOBS
+	$MAKE install
 popd
+markbuilt

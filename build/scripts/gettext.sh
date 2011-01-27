@@ -1,9 +1,14 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=gettext-0.17.tar.gz
+ARCHIVEDIR=gettext-0.17
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar zxf ../packages/gettext-0.17.tar.gz
-patch -p0 < ../patches/gettext-0.17_wchar-fix.patch
-pushd gettext-0.17
-## note gettext needs the trailing / in /chroot/ !
-	./configure --host=arm-linux --prefix=/chroot/ --disable-java --disable-native-java --disable-static
-	make && make install
+patch -p0 < $PATCHESDIR/gettext-0.17_wchar-fix.patch
+pushd $ARCHIVEDIR
+## note gettext needs the trailing / in /${DEVICEROOT}/ !
+	./configure --host=${CROSSTARGET} --prefix=/${DEVICEROOT}/ --disable-java --disable-native-java --disable-static
+	$MAKE -j$MAKE_JOBS
+	$MAKE install
 popd
+markbuilt

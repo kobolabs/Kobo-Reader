@@ -1,11 +1,15 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=libmng-1.0.10.tar.gz
+ARCHIVEDIR=libmng-1.0.10
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar zxf ../packages/libmng-1.0.10.tar.gz
-pushd libmng-1.0.10
-	cp unmaintained/autogen.sh .
-	patch -p0 < ../../patches/libmng-autogen.patch
+cp $ARCHIVEDIR/unmaintained/autogen.sh $ARCHIVEDIR
+patch -d $ARCHIVEDIR -p0 < $PATCHESDIR/libmng-autogen.patch
+pushd $ARCHIVEDIR
 	./autogen.sh
-	CPPFLAGS="-I/chroot/include" LDFLAGS="-L/chroot/lib" ./configure --prefix=/ --host=arm-linux
-	make
-	make DESTDIR=/chroot install
+	CPPFLAGS="${CPPFLAGS}" LDFLAGS="${LDFLAGS}" ./configure --prefix=/ --host=${CROSSTARGET}
+	$MAKE -j$MAKE_JOBS
+	$MAKE DESTDIR=/${DEVICEROOT} install
 popd
+markbuilt

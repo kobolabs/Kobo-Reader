@@ -1,9 +1,14 @@
-#!/bin/sh
+#!/bin/bash
+set -e -u
+ARCHIVE=busybox-1.17.1.tar.bz2
+ARCHIVEDIR=busybox-1.17.1
+. $KOBO_SCRIPT_DIR/build-common.sh
 
-tar jxf ../packages/busybox-1.17.1.tar.bz2
-patch -p0 < ../patches/busybox-1.17.1.patch
-pushd busybox-1.17.1
-	make defconfig
-	make CROSS_COMPILE=arm-linux- install
-	cp -a _install/* /chroot
+patch -p0 < $PATCHESDIR/busybox-1.17.1.patch
+patch -p0 < $PATCHESDIR/busybox-1.17.1-make.patch
+pushd $ARCHIVEDIR
+	$MAKE defconfig
+	$MAKE -j$MAKE_JOBS CROSS_COMPILE="${CROSSTARGET}-" install
+	cp -a _install/* /${DEVICEROOT}
 popd
+markbuilt
