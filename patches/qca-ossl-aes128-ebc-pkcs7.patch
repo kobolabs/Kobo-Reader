@@ -1,6 +1,7 @@
---- qca-ossl-2.0.0-beta3.old/qca-ossl.cpp
-+++ qca-ossl-2.0.0-beta3/qca-ossl.cpp
-@@ -6607,7 +6607,6 @@
+diff -ur qca-ossl-2.0.0-beta3/qca-ossl.cpp qca-ossl-2.0.0-beta3-new/qca-ossl.cpp
+--- qca-ossl-2.0.0-beta3/qca-ossl.cpp	2007-12-11 15:34:57.000000000 +0900
++++ qca-ossl-2.0.0-beta3-new/qca-ossl.cpp	2011-01-25 14:07:51.936921287 +0800
+@@ -6607,6 +6607,7 @@
  {
  	QStringList list;
  	list += "aes128-ecb";
@@ -8,7 +9,7 @@
  	list += "aes128-cfb";
  	list += "aes128-cbc";
  	list += "aes128-cbc-pkcs7";
-@@ -6845,8 +6844,6 @@
+@@ -6844,6 +6845,8 @@
  			return new opensslHMACContext( EVP_ripemd160(), this, type );
  		else if ( type == "aes128-ecb" )
  			return new opensslCipherContext( EVP_aes_128_ecb(), 0, this, type);
