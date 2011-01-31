@@ -1,0 +1,44 @@
+=== BUILDING THE KERNEL ===
+
+To compile the kernel for the kobo2 (kobo wifi), unpack the sources from
+netronix/imx357/kobo2-linux-2.6.28_20110124_R1263r1263.tgz, ensure your ARM
+toolchain is on your PATH, apply ../patches/kobo2-linux-2.6.28_20110124_R1263r1263-make382.patch, 
+then build with:
+
+make CROSS_COMPILE=arm-linux- ARCH=arm oldconfig
+make CROSS_COMPILE=arm-linux- ARCH=arm vmlinuz
+make CROSS_COMPILE=arm-linux- ARCH=arm INSTALL_MOD_PATH=$HOME/kobo/fs modules_install
+
+You may reconfigure to change options with:
+
+make CROSS_COMPILE=arm-linux- ARCH=arm oldconfig
+
+.. but be aware that unwise config tinkering will result in a kernel that'll
+fail to boot.
+
+The Kobo's kernel image is the build output arch/arm/boot/zImage from the
+kernel build. The modules are written to $HOME/kobo/fs; change that path to
+your preferred working directory.
+
+=== INSTALLING THE KERNEL ===
+
+Do not install a new kernel unless you are prepared to open your Kobo up and
+make a backup disk image of the internal MicroSD card first. If your new kernel
+fails for any reason, you will not be able to boot your Kobo even into recovery
+mode. If you mess up the install by writing to the wrong offset or too big an
+image, just reinstalling the old kernel using a manual `dd' won't work; you'll
+need to restore the whole 2GB firmware image.
+
+You can make a backup over wifi using netcat while all filesystems are mounted
+read-only if you prefer not to open your Kobo. You can't restore after a bad
+kernel write that way, though, so you have to be prepared to open up your Kobo.
+
+Once you have made a backup of your Kobo's onboard MicroSD card via direct SD
+copy or via a wifi network image, installing the kernel is as simple as putting
+the new zImage in .kobo/upgrade/zImage on the Kobo's user-accessible fat32
+flash, then safely unplugging it. It'll reboot, rewrite the kernel, reboot
+again, and boot up into the new kernel.
+
+You may have to rebuild the wifi driver separately if your kernel isn't
+compatible with the original one. In my testing this wasn't necessary, as
+the old wifi driver linked with the new kernel and ran fine.
