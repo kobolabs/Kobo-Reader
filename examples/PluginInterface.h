@@ -2,6 +2,7 @@
 #define __PLUGIN_INTERFACE_H__
 
 #include <QObject>
+#include <QStringList>
 
 class ParserInterface : public QObject
 {
@@ -30,6 +31,8 @@ public:
 	virtual ~PluginInterface() {};
 
 	virtual QStringList mimeTypes() = 0;
+	
+	virtual QStringList fileExtensions() { return QStringList(); };
 
 	virtual QWidget *reader(QWidget *parent = 0) = 0;
 
