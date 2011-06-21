@@ -1,0 +1,11 @@
+--- src/tslib-private.h.old	2010-12-04 00:15:33.151427000 -0500
++++ src/tslib-private.h	2010-12-04 00:15:42.367426998 -0500
+@@ -17,8 +17,6 @@
+ #include "tslib.h"
+ #include "tslib-filter.h"
+ 
+-#define DEBUG
+-
+ struct tsdev {
+ 	int fd;
+ 	struct tslib_module_info *list;
