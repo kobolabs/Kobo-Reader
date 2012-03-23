@@ -30,7 +30,7 @@ CFLAGS=${CFLAGS:-"${CPPFLAGS}"}
 LIBS=${LIBS:-"-L${DEVICEROOT}/lib -L${DEVICEROOT}/usr/lib"}
 LDFLAGS=${LDFLAGS:-"${LIBS}"}
 
-LIBTOOL=${LIBTOOL:-"${DEVICEROOT}/usr/local/bin/arm-linux-libtool"}
+LIBTOOL=${LIBTOOL:-"${DEVICEROOT}/usr/local/bin/${CROSSTARGET}-libtool"}
 CC=${CC:-"${CROSSTARGET}-gcc"}
 
 # Qt options are empty by default, but may be overridden by the user.
