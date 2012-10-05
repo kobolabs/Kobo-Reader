@@ -44,3 +44,85 @@ diff -ur busybox-1.17.1-old/networking/ntpd.c busybox-1.17.1/networking/ntpd.c
  #if USING_INITIAL_FREQ_ESTIMATION
  		if (G.discipline_state == STATE_NSET) {
  			set_new_values(STATE_FREQ, /*offset:*/ 0, recv_time);
+diff -ru busybox-1.17.1-old//networking/udhcp/dhcpc.c busybox-1.17.1/networking/udhcp/dhcpc.c
+--- busybox-1.17.1-old//networking/udhcp/dhcpc.c	2010-07-05 22:25:54.000000000 -0400
++++ busybox-1.17.1/networking/udhcp/dhcpc.c	2011-05-30 22:36:23.933008001 -0400
+@@ -343,8 +343,17 @@
+ /* Initialize the packet with the proper defaults */
+ static void init_packet(struct dhcp_packet *packet, char type)
+ {
++	uint16_t secs;
++
+ 	udhcp_init_header(packet, type);
+ 	memcpy(packet->chaddr, client_config.client_mac, 6);
++
++	client_config.last_secs = monotonic_sec();
++	if (client_config.first_secs == 0)
++		client_config.first_secs = client_config.last_secs;
++	secs = client_config.last_secs - client_config.first_secs;
++	packet->secs = htons(secs);
++
+ 	if (client_config.clientid)
+ 		udhcp_add_binary_option(packet, client_config.clientid);
+ 	if (client_config.hostname)
+@@ -698,6 +707,7 @@
+ 	/* else LISTEN_NONE: sockfd stays closed */
+ }
+ 
++/* Called only on SIGUSR1 */
+ static void perform_renew(void)
+ {
+ 	bb_info_msg("Performing a DHCP renew");
+@@ -1063,6 +1073,7 @@
+ 			case BOUND:
+ 				/* 1/2 lease passed, enter renewing state */
+ 				state = RENEWING;
++				client_config.first_secs = 0; /* make secs field count from 0 */
+ 				change_listen_mode(LISTEN_KERNEL);
+ 				log1("Entering renew state");
+ 				/* fall right through */
+@@ -1102,6 +1113,7 @@
+ 				bb_info_msg("Lease lost, entering init state");
+ 				udhcp_run_script(NULL, "deconfig");
+ 				state = INIT_SELECTING;
++				client_config.first_secs = 0; /* make secs field count from 0 */
+ 				/*timeout = 0; - already is */
+ 				packet_num = 0;
+ 				continue;
+@@ -1118,6 +1130,7 @@
+ 		/* note: udhcp_sp_read checks FD_ISSET before reading */
+ 		switch (udhcp_sp_read(&rfds)) {
+ 		case SIGUSR1:
++			client_config.first_secs = 0; /* make secs field count from 0 */
+ 			perform_renew();
+ 			if (state == RENEW_REQUESTED)
+ 				goto case_RENEW_REQUESTED;
+@@ -1249,6 +1262,7 @@
+ 							udhcp_run_script(NULL, "deconfig");
+ 						change_listen_mode(LISTEN_RAW);
+ 						state = INIT_SELECTING;
++						client_config.first_secs = 0; /* make secs field count from 0 */
+ 						requested_ip = 0;
+ 						timeout = tryagain_timeout;
+ 						packet_num = 0;
+@@ -1296,6 +1310,7 @@
+ 				change_listen_mode(LISTEN_RAW);
+ 				sleep(3); /* avoid excessive network traffic */
+ 				state = INIT_SELECTING;
++				client_config.first_secs = 0; /* make secs field count from 0 */
+ 				requested_ip = 0;
+ 				timeout = 0;
+ 				packet_num = 0;
+diff -ru busybox-1.17.1-old//networking/udhcp/dhcpc.h busybox-1.17.1/networking/udhcp/dhcpc.h
+--- busybox-1.17.1-old//networking/udhcp/dhcpc.h	2010-07-05 22:25:54.000000000 -0400
++++ busybox-1.17.1/networking/udhcp/dhcpc.h	2011-05-30 22:34:20.125008001 -0400
+@@ -21,6 +21,9 @@
+ 	uint8_t *vendorclass;           /* Optional vendor class-id to use */
+ 	uint8_t *hostname;              /* Optional hostname to use */
+ 	uint8_t *fqdn;                  /* Optional fully qualified domain name to use */
++
++	uint16_t first_secs;
++	uint16_t last_secs;
+ } FIX_ALIASING;
+ 
+ /* server_config sits in 1st half of bb_common_bufsiz1 */
