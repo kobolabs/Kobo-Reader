@@ -1,0 +1,10 @@
+--- ../../icu-x86/source/common/unicode/plinux.h	2012-02-07 14:12:32.000000000 -0500
++++ common/unicode/plinux.h	2012-02-07 14:57:38.696558013 -0500
+@@ -350,7 +350,6 @@
+  * @internal
+  */
+ #ifndef U_HAVE_GCC_ATOMICS
+-#define U_HAVE_GCC_ATOMICS 1
+ #endif
+ 
+ /** @} */
