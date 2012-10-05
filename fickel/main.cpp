@@ -1,5 +1,6 @@
 #include "main.h"
 
+#include <QDebug>
 #include <string>
 #include <netinet/ether.h>
 #include <sstream>
@@ -9,7 +10,7 @@ using namespace std;
 #define HARDWARE_STATUS_FIFO "/tmp/nickel-hardware-status"
 
 static const int SIGNAL_STRENGTH_UPDATE_INTERVAL = 3000000;
-static const int SCANNING_NETWORKS_WAIT_INTERVAL = 250000;
+static const int SCANNING_NETWORKS_WAIT_INTERVAL = 1000000;
 
 int main(int argc, char *argv[])
 {
@@ -38,6 +39,8 @@ int main(int argc, char *argv[])
 
 	monitoringLinkQuality = false;
 	scanning = false;
+	rescanOnEachIteration = false;
+	totalScanIterations = 20; // 5 seconds
 
 	// Open FIFO pipe.
 	fd = open(HARDWARE_STATUS_FIFO, O_WRONLY);
@@ -50,6 +53,11 @@ int main(int argc, char *argv[])
 		if(argument.substr(0, 4) == "scan")
 		{
 			startScanningForNetworks();
+		}
+		else if (argument.substr(0, 11) == "forcerescan")
+		{
+			rescanOnEachIteration = true;
+			totalScanIterations = 7;
 		}
 		else if(argument.substr(0, 4) == "info")
 		{
@@ -69,7 +77,7 @@ int main(int argc, char *argv[])
 	// Start our event loop.
 	while(monitoringLinkQuality || scanning)
 	{
-		if (monitoringLinkQuality && intervalsSinceLinkQuality >= SIGNAL_STRENGTH_UPDATE_INTERVAL)
+		if (monitoringLinkQuality && (intervalsSinceLinkQuality >= SIGNAL_STRENGTH_UPDATE_INTERVAL || intervalsSinceLinkQuality == 0))
 		{
 			fireLinkQualityUpdate();
 			intervalsSinceLinkQuality = 0;
@@ -97,7 +105,7 @@ std::string escapeForShell(const std::string& s)
 {
 	std::string specialChars (" !#$%&'()*+,-./}~:;>=<?@[\\]^_`{|\""); /* might not need to escape ALL of these; taken as-is from dbck-2484 test case */
 	std::string ret;
-	for (int i = 0; i < s.length(); ++i)
+	for (unsigned int i = 0; i < s.length(); ++i)
 	{
 		char c = s.at(i);
 		if (specialChars.find(c) != specialChars.npos)
@@ -125,6 +133,12 @@ float linkQuality()
 
 	if (iw_get_range_info(openSocket, iface, &range) >= 0) {
 		if (iw_get_stats(openSocket, iface, &stats, &range, 1) >= 0) {
+
+			// These magic numbers mean we're not connected anymore.
+			if (stats.qual.qual == 255 && stats.qual.level == 160) {
+				return -1;
+			}
+
 			signed char level = stats.qual.level;
 			signed char noise = stats.qual.noise;
 			signed char ratio = level - noise;
@@ -301,6 +315,32 @@ bool find8021XAuthenticationSuite(unsigned char* buffer, int length)
 	return false;
 }
 
+bool findWPS(unsigned char* buffer, int length)
+{
+	static unsigned char wps_oui[4] = {0x00, 0x50, 0xf2, 0x04};
+
+	int offset = 0;
+
+	while (offset < (length - 2))
+	{
+		switch (buffer[offset])
+		{
+		case 0xdd:
+			if (memcmp(&buffer[offset+2], wps_oui, 4) == 0) {
+				return true;
+			}
+			break;
+		default:
+			break;
+		}
+
+		// Jump to the next IE.
+		offset += buffer[offset+1] + 2;
+	}
+
+	return false;
+}
+
 unsigned char findWPAType(unsigned char *buffer, int length)
 {
 	static unsigned char wpa1_oui[3] = {0x00, 0x50, 0xf2};
@@ -324,7 +364,6 @@ unsigned char findWPAType(unsigned char *buffer, int length)
 				if (memcmp(&buffer[offset+2], wpa1_oui, 3) == 0 && buffer[offset+5] == 0x01) {
 					return 0xdd;
 				}
-
 				break;
 			}
 
@@ -343,165 +382,167 @@ unsigned char findWPAType(unsigned char *buffer, int length)
 	return 0;
 }
 
-void processScan()
+bool processScan()
 {
-	if (_wrq.u.data.length > 0)
-	{
-		struct iw_event event;
-		struct stream_descr stream;
+	struct iw_event event;
+	struct stream_descr stream;
 
-		iw_init_event_stream(&stream, scanBuffer, _wrq.u.data.length);
+	iw_init_event_stream(&stream, scanBuffer, _wrq.u.data.length);
 
-		bool skipNetwork = false;
-		bool foundWPAType = false;
+	bool skipNetwork = false;
+	bool foundWPAType = false;
+	bool supportsWPS = false;
 
-		while (iw_extract_event_stream(&stream, &event, _range.we_version_compiled) > 0)
-		{
-			switch (event.cmd)
-			{
-			case SIOCGIWMODE:
-				{
-					if (event.u.mode < 8) {
-						networkMode = event.u.mode;
-					}
-					break;
-				}
-
-			case SIOCGIWAP:
-				{
-					if (skipNetwork == false && networkMacAddress.length() > 0 && networkName.length() > 0) {
-						string scannedNetwork;
-						ostringstream o;
-						o << networkLinkQuality;
-						ostringstream p;
-						p << networkMode;
-						scannedNetwork = "echo network scanned:NAME:" + escapeForShell(networkName) + "MACADDRESS:" + networkMacAddress + "SECURITYTYPE:" + networkSecurityType + "LINKQUALITY:" + o.str() + "MODE:" + p.str() + " >> " + HARDWARE_STATUS_FIFO;
-
-						system(scannedNetwork.c_str());
-						
-						networkName = "";
-						networkMode = 0;
-						networkMacAddress = "";
-						networkSecurityType = "";
-						networkLinkQuality = 0;
-					}
-
-					foundWPAType = false;
-					skipNetwork = false;
-					char buffer[32];
-					networkMacAddress = string(ether_ntoa_r((const struct ether_addr *) &event.u.ap_addr.sa_data, buffer));
-					break;
-				}
-
-			case SIOCGIWESSID:
-				{
-					char essid[4*IW_ESSID_MAX_SIZE+1];
-					memset(essid, '\0', sizeof(essid));
-					if((event.u.essid.pointer) && (event.u.essid.length)) {
-						memcpy(essid, event.u.essid.pointer, event.u.essid.length);
-					}
-
-					networkName = essid;
-					break;
-				}
-
-			case IWEVQUAL:
-				{
-					float linkQuality = 0.0;
-					signed char level = event.u.qual.level;
-					signed char noise = event.u.qual.noise;
-					signed char ratio = level - noise;
-					if (ratio > 40) {
-						linkQuality = 0.8;
-					}
-					else if (ratio > 25) {
-						linkQuality = 0.6;
-					}
-					else if (ratio > 15) {
-						linkQuality = 0.4;
-					}
-					else if (ratio > 10) {
-						linkQuality = 0.2;
-					}
-					else {
-						linkQuality = 0.0;
-					}
-
-					networkLinkQuality = linkQuality;
-					break;
-				}
-
-			case SIOCGIWENCODE:
-				{
-					// There is no explicit WEP identifier so we default to WEP if security is enabled. We
-					// will change the security type to WPA or WPA2 when the IE events are coming in.
-
-					if (event.u.data.flags & IW_ENCODE_DISABLED) {
-						networkSecurityType = "NONE";
-					}
-					else {
-						networkSecurityType = "WEP";
-					}
-
-					break;
-				}
-
-			case IWEVGENIE:
-				{
-					// We sometimes get multiple IE events. Let's only take the first correct one.
-					if (foundWPAType) {
-						break;
-					}
-
-					// Parse the IE to find out if this AP uses WPA or WPA2.
-
-					unsigned char type = findWPAType((unsigned char*) event.u.data.pointer, event.u.data.length);
-
-					switch (type) {
-					case 0x30:  
-						foundWPAType = true;
-	 					networkSecurityType = "WPA2";
-						break;
-					case 0xdd:
-						foundWPAType = true;
-						networkSecurityType = "WPA";
-						break;
-					}
-
-					// If this is WPA then parse the IE again to see if it is 802.1x
-
-					if (type != 0x00) {
-						skipNetwork = find8021XAuthenticationSuite((unsigned char*)event.u.data.pointer,event.u.data.length);
-					}
-
-					break;
-				}
-			}
-		}
-
-		// The stream just stops, there is no 'end of network info' event. So add the last network.
-		if (skipNetwork == false && networkMacAddress.length()) {
-			string scannedNetwork;
-			ostringstream o;
-			o << networkLinkQuality;
-			ostringstream p;
-			p << networkMode;
-			scannedNetwork = "echo network scanned:NAME:" + escapeForShell(networkName) + "MACADDRESS:" + networkMacAddress +
-							 "SECURITYTYPE:" + networkSecurityType + "LINKQUALITY:" + o.str() + "MODE:" + p.str() + " >> " + HARDWARE_STATUS_FIFO;
-
-			system(scannedNetwork.c_str());
-
-			foundWPAType = false;
-			networkName = "";
-			networkMode = 0;
-			networkMacAddress = "";
-			networkSecurityType = "";
-			networkLinkQuality = 0;
-		}
-
+	if (iw_extract_event_stream(&stream, &event, _range.we_version_compiled) <= 0) {
+		return false;
 	}
 
-	scanning = false;
+	do {
+		switch (event.cmd)
+		{
+		case SIOCGIWAP:
+			{
+				if (skipNetwork == false && networkMacAddress.length() > 0 && networkName.length() > 0) {
+					string scannedNetwork;
+					ostringstream o;
+					o << networkLinkQuality;
+					ostringstream p;
+					p << networkMode;
+					scannedNetwork = "echo network scanned:NAME:" + escapeForShell(networkName) + "MACADDRESS:" + networkMacAddress + "SECURITYTYPE:" + networkSecurityType + "LINKQUALITY:" + o.str() + "MODE:" + p.str() + "WPS:" + (supportsWPS ? "1" : "0") + " >> " + HARDWARE_STATUS_FIFO;
+
+					system(scannedNetwork.c_str());
+					
+					networkName = "";
+					networkMode = 0;
+					networkMacAddress = "";
+					networkSecurityType = "";
+					networkLinkQuality = 0;
+				}
+
+				foundWPAType = false;
+				skipNetwork = false;
+				supportsWPS = false;
+				char buffer[32];
+				networkMacAddress = string(ether_ntoa_r((const struct ether_addr *) &event.u.ap_addr.sa_data, buffer));
+				break;
+			}
+
+		case SIOCGIWESSID:
+			{
+				char essid[4*IW_ESSID_MAX_SIZE+1];
+				memset(essid, '\0', sizeof(essid));
+				if((event.u.essid.pointer) && (event.u.essid.length)) {
+					memcpy(essid, event.u.essid.pointer, event.u.essid.length);
+				}
+
+				networkName = essid;
+				break;
+			}
+
+		case IWEVQUAL:
+			{
+				float linkQuality = 0.0;
+				signed char level = event.u.qual.level;
+				signed char noise = event.u.qual.noise;
+				signed char ratio = level - noise;
+				if (ratio > 40) {
+					linkQuality = 0.8;
+				}
+				else if (ratio > 25) {
+					linkQuality = 0.6;
+				}
+				else if (ratio > 15) {
+					linkQuality = 0.4;
+				}
+				else if (ratio > 10) {
+					linkQuality = 0.2;
+				}
+				else {
+					linkQuality = 0.0;
+				}
+
+				networkLinkQuality = linkQuality;
+				break;
+			}
+
+		case SIOCGIWENCODE:
+			{
+				// There is no explicit WEP identifier so we default to WEP if security is enabled. We
+				// will change the security type to WPA or WPA2 when the IE events are coming in.
+
+				if (foundWPAType) {
+					break;
+				}
+
+				if (event.u.data.flags & IW_ENCODE_DISABLED) {
+					networkSecurityType = "NONE";
+				}
+				else {
+					networkSecurityType = "WEP";
+				}
+
+				break;
+			}
+
+		case IWEVGENIE:
+			{
+				if (!supportsWPS) {
+					supportsWPS = findWPS((unsigned char*)event.u.data.pointer,event.u.data.length);
+				}
+
+				// We sometimes get multiple IE events. Let's only take the first correct one.
+				if (foundWPAType) {
+					break;
+				}
+
+				// Parse the IE to find out if this AP uses WPA or WPA2.
+
+				unsigned char type = findWPAType((unsigned char*) event.u.data.pointer, event.u.data.length);
+
+				switch (type) {
+				case 0x30:  
+					foundWPAType = true;
+					networkSecurityType = "WPA2";
+					break;
+				case 0xdd:
+					foundWPAType = true;
+					networkSecurityType = "WPA";
+					break;
+				}
+
+				// If this is WPA then parse the IE again to see if it is 802.1x
+
+				if (type != 0x00) {
+					skipNetwork = find8021XAuthenticationSuite((unsigned char*)event.u.data.pointer,event.u.data.length);
+				}
+
+				break;
+			}
+		}
+	}
+	while (iw_extract_event_stream(&stream, &event, _range.we_version_compiled) > 0);
+
+	// The stream just stops, there is no 'end of network info' event. So add the last network.
+	if (skipNetwork == false && networkMacAddress.length()) {
+		string scannedNetwork;
+		ostringstream o;
+		o << networkLinkQuality;
+		ostringstream p;
+		p << networkMode;
+		scannedNetwork = "echo network scanned:NAME:" + escapeForShell(networkName) + "MACADDRESS:" + networkMacAddress +
+						 "SECURITYTYPE:" + networkSecurityType + "LINKQUALITY:" + o.str() + "MODE:" + p.str() + "WPS:" + (supportsWPS ? "1" : "0") + " >> " + HARDWARE_STATUS_FIFO;
+
+		system(scannedNetwork.c_str());
+
+		foundWPAType = false;
+		networkName = "";
+		networkMode = 0;
+		networkMacAddress = "";
+		networkSecurityType = "";
+		networkLinkQuality = 0;
+	}
+
+	return true;
 }
 
 void continueScan()
@@ -521,19 +562,23 @@ void continueScan()
 		if (errno == EAGAIN) {
 			// Not all results are available s wait for event loop to check back again...
 		}
+		else {
+			scanning = false;
+		}
 	} else {
-		if (_wrq.u.data.length == 0) {
-			scanCount++;
-			if (scanCount == 3) {
-				scanning = false;
-				return;
-			}
+		bool ok = processScan();
+		scanCount++;
+
+		if (scanCount == totalScanIterations) {
+			scanning = false;
+			return;
+		}
+
+		if (!ok || rescanOnEachIteration) {
 			if (initiateScan() == false) {
 				scanning = false;
 				return;
 			}
-		} else {
-			processScan();
 		}
 	}
 }
@@ -567,12 +612,15 @@ void startScanningForNetworks()
 	}
 
 	if (openSocket == -1) {
+		printf("Didn't open socket!\n");
 		return;
 	}
 
 	// Get range stuff
 	if (iw_get_range_info(openSocket, interface.c_str(), &_range) < 0) {
 		printf("(1) Interface does not support scanning (iw_get_range_info failed)");
+		string scanFinished = "echo scan finished >> " + string(HARDWARE_STATUS_FIFO);
+		system(scanFinished.c_str());
 		return;
 	}
 
@@ -586,12 +634,15 @@ void fireLinkQualityUpdate()
 {
 	float quality = linkQuality();
 	if (quality != -1) {
-
 		ostringstream o;
 		o << quality;
 
 		string linkQualityUpdate = "echo link quality:" +o.str() + ">>" + HARDWARE_STATUS_FIFO;
 		system(linkQualityUpdate.c_str());
+	}
+	else {
+		string networkDeconfig = string("echo link lost >> ") + HARDWARE_STATUS_FIFO;
+		system(networkDeconfig.c_str());
 	}
 }
 

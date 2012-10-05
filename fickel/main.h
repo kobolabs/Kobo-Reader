@@ -7,6 +7,8 @@
 #include <string>
 
 bool scanning;
+int totalScanIterations;
+bool rescanOnEachIteration;
 bool monitoringLinkQuality;
 
 std::string interface;
@@ -38,7 +40,7 @@ std::string getCurrentNetworkName();
 
 /* Scanning functions */
 bool initiateScan();
-void processScan();
+bool processScan();
 void continueScan();
 void startScanningForNetworks();
 
