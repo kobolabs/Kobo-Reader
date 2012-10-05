@@ -1,7 +1,7 @@
 Index: src/corelib/kernel/qeventdispatcher_unix.cpp
 ===================================================================
 --- src/corelib/kernel/qeventdispatcher_unix.cpp	(revision 12931)
-+++ src/corelib/kernel/qeventdispatcher_unix.cpp	(revision 22411)
++++ src/corelib/kernel/qeventdispatcher_unix.cpp	(revision 29385)
 @@ -469,6 +469,9 @@
  
  void QTimerInfoList::registerTimer(int timerId, int interval, QObject *object)
@@ -12,10 +12,126 @@ Index: src/corelib/kernel/qeventdispatcher_unix.cpp
      QTimerInfo *t = new QTimerInfo;
      t->id = timerId;
      t->interval.tv_sec  = interval / 1000;
+Index: src/corelib/io/qsettings_mac.cpp
+===================================================================
+--- src/corelib/io/qsettings_mac.cpp	(revision 12931)
++++ src/corelib/io/qsettings_mac.cpp	(revision 29385)
+@@ -46,6 +46,10 @@
+ #include "qvarlengtharray.h"
+ #include "private/qcore_mac_p.h"
+ 
++#ifndef QT_NO_QOBJECT
++#include "qcoreapplication.h"
++#endif
++
+ QT_BEGIN_NAMESPACE
+ 
+ static const CFStringRef hostNames[2] = { kCFPreferencesCurrentHost, kCFPreferencesAnyHost };
+@@ -580,7 +584,37 @@
+                                            const QString &application)
+ {
+     if (format == QSettings::NativeFormat) {
+-        return new QMacSettingsPrivate(scope, organization, application);
++        QString org = organization;
++        QString app = application;
++#ifndef QT_NO_QOBJECT
++        static int forAppStore = -1;
++        if (forAppStore == -1) {
++            // Check for a Key called "QtForAppStore" in Info.plist
++            forAppStore = 0;
++            CFBundleRef mainBundle;
++            mainBundle = CFBundleGetMainBundle();
++            CFStringRef key = QCFString::toCFStringRef(QLatin1String("QtForAppStore"));
++            CFTypeRef val = CFBundleGetValueForInfoDictionaryKey(mainBundle, key);
++            if (CFGetTypeID(val) == CFStringGetTypeID()
++                    && !QCFString::toQString((CFStringRef)val).compare(QLatin1String("yes"), Qt::CaseInsensitive)) {
++                // The value for "QtForAppStore"' is "Yes"
++                forAppStore = 1;
++            }
++            //Release the variables
++        }
++        // Check whether to apply AppStore folder restrictions.
++        if (forAppStore) {
++            CFBundleRef mainBundle;
++            mainBundle = CFBundleGetMainBundle();
++            QString identifier = QCFString::toQString(CFBundleGetIdentifier(mainBundle));
++            QStringList parts = identifier.split(QChar('.'));
++            if (parts.count() >= 3) {
++                app = QStringList(parts.mid(2)).join(".");
++                org = parts[1] + QLatin1Char('.') +parts[0];
++            }
++	}
++#endif
++        return new QMacSettingsPrivate(scope, org, app);
+     } else {
+         return new QConfFileSettingsPrivate(format, scope, organization, application);
+     }
+Index: src/corelib/io/qurl.cpp
+===================================================================
+--- src/corelib/io/qurl.cpp	(revision 12931)
++++ src/corelib/io/qurl.cpp	(revision 29385)
+@@ -5289,7 +5289,19 @@
+         if (key == QByteArray::fromRawData(query + pos, valuedelim - pos)) {
+             if (end < d->query.size())
+                 ++end; // remove additional '%'
+-            d->query.remove(pos, end - pos);
++
++	    if (pos != 0 && query[pos-1] == d->pairDelimiter)
++	    {
++		    if (end == d->query.size()) {
++			d->query.remove(pos - 1, end - pos + 1);
++		    } else {
++			d->query.remove(pos - 1, end - pos);
++		    }
++
++	    } else {
++		    d->query.remove(pos, end - pos);
++	    }
++
+             return;
+         }
+         pos = end + 1;
+Index: src/gui/kernel/qgesturemanager.cpp
+===================================================================
+--- src/gui/kernel/qgesturemanager.cpp	(revision 12931)
++++ src/gui/kernel/qgesturemanager.cpp	(revision 29385)
+@@ -47,6 +47,7 @@
+ #include "private/qevent_p.h"
+ #include "qgesture.h"
+ #include "qevent.h"
++#include "qmenu.h"
+ #include "qgraphicsitem.h"
+ 
+ #ifdef Q_WS_MAC
+@@ -451,7 +452,7 @@
+         }
+     }
+     // find all gesture contexts for the widget tree
+-    w = w->isWindow() ? 0 : w->parentWidget();
++    //w = w->isWindow() ? 0 : w->parentWidget();
+     while (w)
+     {
+         for (ContextIterator it = w->d_func()->gestureContext.begin(),
+@@ -588,6 +589,15 @@
+                 if (context->isWidgetType())
+                     target = static_cast<QWidget *>(context);
+             }
++
++			// Found nothing, let's send the gesture to some top-level widget anyway!
++			if (!target)
++				target = QApplication::activeModalWidget();
++			if (!target)
++				target = QApplication::activePopupWidget();
++			if (!target)
++				target = QApplication::activeWindow();
++
+             if (target)
+                 m_gestureTargets.insert(gesture, target);
+         }
 Index: src/gui/kernel/qcocoaview_mac.mm
 ===================================================================
 --- src/gui/kernel/qcocoaview_mac.mm	(revision 12931)
-+++ src/gui/kernel/qcocoaview_mac.mm	(revision 22411)
++++ src/gui/kernel/qcocoaview_mac.mm	(revision 29385)
 @@ -644,6 +644,9 @@
  
  - (void)mouseEntered:(NSEvent *)event
@@ -26,10 +142,24 @@ Index: src/gui/kernel/qcocoaview_mac.mm
      QEvent enterEvent(QEvent::Enter);
      NSPoint windowPoint = [event locationInWindow];
      NSPoint globalPoint = [[event window] convertBaseToScreen:windowPoint];
+Index: src/gui/kernel/qcursor_qws.cpp
+===================================================================
+--- src/gui/kernel/qcursor_qws.cpp	(revision 12931)
++++ src/gui/kernel/qcursor_qws.cpp	(revision 29385)
+@@ -116,6 +116,9 @@
+ 
+ QPoint QCursor::pos()
+ {
++#if defined (QT_NO_QWS_CURSOR)
++    return QPoint(0, 0);
++#endif
+     // This doesn't know about hotspots yet so we disable it
+     //qt_accel_update_cursor();
+     if (qt_last_x)
 Index: src/gui/kernel/qwidget_mac.mm
 ===================================================================
 --- src/gui/kernel/qwidget_mac.mm	(revision 12931)
-+++ src/gui/kernel/qwidget_mac.mm	(revision 22411)
++++ src/gui/kernel/qwidget_mac.mm	(revision 29385)
 @@ -3510,6 +3510,9 @@
  
      if (!QWidget::mouseGrabber()){
@@ -40,10 +170,161 @@ Index: src/gui/kernel/qwidget_mac.mm
          QApplicationPrivate::dispatchEnterLeave(enterWidget, qt_mouseover);
          qt_mouseover = enterWidget;
      }
+Index: src/gui/kernel/qapplication.cpp
+===================================================================
+--- src/gui/kernel/qapplication.cpp	(revision 12931)
++++ src/gui/kernel/qapplication.cpp	(revision 29385)
+@@ -5542,6 +5542,12 @@
+             }
+ 
+             if (!widget) {
++                if (!window)
++                    window = QApplication::activeModalWidget();
++                if (!window)
++                    window = QApplication::activePopupWidget();
++                if (!window)
++                    window = QApplication::activeWindow();
+                 // determine which widget this event will go to
+                 if (!window)
+                     window = QApplication::topLevelAt(touchPoint.screenPos().toPoint());
+@@ -5552,14 +5558,26 @@
+                     widget = window;
+             }
+ 
++			/* This little bit doesn't look like it makes sense for our modality scheme, because closestWidget will return
++			 * whatever is below the the touch point.
++			 *
+             if (deviceType == QTouchEvent::TouchScreen) {
+                 int closestTouchPointId = d->findClosestTouchPointId(touchPoint.screenPos());
+                 QWidget *closestWidget = d->widgetForTouchPointId.value(closestTouchPointId).data();
++
++                if (!closestWidget || (closestWidget == QApplication::activeWindow()) || (closestWidget == QApplication::activePopupWidget()))
++                    closestWidget = QApplication::activeModalWidget();
++                if (!closestWidget || (closestWidget == QApplication::activeWindow()))
++                    closestWidget = QApplication::activePopupWidget();
++                if (!closestWidget)
++                    closestWidget = QApplication::activeWindow();
++
+                 if (closestWidget
+                     && (widget.data()->isAncestorOf(closestWidget) || closestWidget->isAncestorOf(widget.data()))) {
+                     widget = closestWidget;
+                 }
+             }
++            */
+ 
+             d->widgetForTouchPointId[touchPoint.id()] = widget;
+             touchPoint.d->startScreenPos = touchPoint.screenPos();
+Index: src/gui/text/qfontengine_qws.cpp
+===================================================================
+--- src/gui/text/qfontengine_qws.cpp	(revision 12931)
++++ src/gui/text/qfontengine_qws.cpp	(revision 29385)
+@@ -557,7 +557,7 @@
+     QFixed w = 0;
+     for (int i = 0; i < glyphs.numGlyphs; ++i)
+         w += glyphs.effectiveAdvance(i);
+-    return glyph_metrics_t(0, -ascent(), w, ascent()+descent()+1, w, 0);
++    return glyph_metrics_t(0, -ascent(), w - lastRightBearing(glyphs), ascent()+descent()+1, w, 0);
+ }
+ 
+ glyph_metrics_t QFontEngineQPF1::boundingBox(glyph_t glyph)
+Index: src/gui/text/qfontengine.cpp
+===================================================================
+--- src/gui/text/qfontengine.cpp	(revision 12931)
++++ src/gui/text/qfontengine.cpp	(revision 29385)
+@@ -1083,6 +1083,18 @@
+     return *qt_grayPalette();
+ }
+ 
++QFixed QFontEngine::lastRightBearing(const QGlyphLayout &glyphs, bool round)
++{
++	if (glyphs.numGlyphs >= 1) {
++		glyph_t glyph = glyphs.glyphs[glyphs.numGlyphs - 1];
++		glyph_metrics_t gi = boundingBox(glyph);
++		if (gi.isValid())
++			return round ? QFixed(qRound(gi.xoff - gi.x - gi.width))
++						: QFixed(gi.xoff - gi.x - gi.width);
++	}
++	return 0;
++}
++
+ // ------------------------------------------------------------------
+ // The box font engine
+ // ------------------------------------------------------------------
+Index: src/gui/text/qfontengine_mac.mm
+===================================================================
+--- src/gui/text/qfontengine_mac.mm	(revision 12931)
++++ src/gui/text/qfontengine_mac.mm	(revision 29385)
+@@ -378,9 +378,13 @@
+ glyph_metrics_t QCoreTextFontEngine::boundingBox(const QGlyphLayout &glyphs)
+ {
+     QFixed w;
+-    for (int i = 0; i < glyphs.numGlyphs; ++i)
+-        w += glyphs.effectiveAdvance(i);
+-    return glyph_metrics_t(0, -(ascent()), w, ascent()+descent(), w, 0);
++    bool round = fontDef.styleStrategy & QFont::ForceIntegerMetrics;
++    
++    for (int i = 0; i < glyphs.numGlyphs; ++i) {
++        w += round ? glyphs.effectiveAdvance(i).round()
++					: glyphs.effectiveAdvance(i);
++	}
++    return glyph_metrics_t(0, -(ascent()), w - lastRightBearing(glyphs, round), ascent()+descent(), w, 0);
+ }
+ glyph_metrics_t QCoreTextFontEngine::boundingBox(glyph_t glyph)
+ {
+@@ -1372,9 +1376,12 @@
+ glyph_metrics_t QFontEngineMac::boundingBox(const QGlyphLayout &glyphs)
+ {
+     QFixed w;
+-    for (int i = 0; i < glyphs.numGlyphs; ++i)
+-        w += glyphs.effectiveAdvance(i);
+-    return glyph_metrics_t(0, -(ascent()), w, ascent()+descent(), w, 0);
++    bool round = fontDef.styleStrategy & QFont::ForceIntegerMetrics;
++    for (int i = 0; i < glyphs.numGlyphs; ++i) {
++        w += round ? glyphs.effectiveAdvance(i).round()
++					: glyphs.effectiveAdvance(i);
++	}
++    return glyph_metrics_t(0, -(ascent()), w - lastRightBearing(glyphs, round), ascent()+descent(), w, 0);
+ }
+ 
+ glyph_metrics_t QFontEngineMac::boundingBox(glyph_t glyph)
+Index: src/gui/text/qtextengine.cpp
+===================================================================
+--- src/gui/text/qtextengine.cpp	(revision 12931)
++++ src/gui/text/qtextengine.cpp	(revision 29385)
+@@ -1601,8 +1601,7 @@
+ 
+     for (int i = 0; i < layoutData->items.size(); i++) {
+         const QScriptItem *si = layoutData->items.constData() + i;
+-        QFontEngine *fe = fontEngine(*si);
+-
++        
+         int pos = si->position;
+         int ilen = length(i);
+         if (pos > from + len)
+@@ -1631,6 +1630,7 @@
+                 while (charFrom < ilen && logClusters[charFrom] == glyphStart)
+                     charFrom++;
+             if (charFrom < ilen) {
++				QFontEngine *fe = fontEngine(*si);
+                 glyphStart = logClusters[charFrom];
+                 int charEnd = from + len - 1 - pos;
+                 if (charEnd >= ilen)
+@@ -1649,11 +1649,6 @@
+                     gm.yoff += m.yoff;
+                 }
+             }
+-
+-            glyph_t glyph = glyphs.glyphs[logClusters[pos + ilen - 1]];
+-            glyph_metrics_t gi = fe->boundingBox(glyph);
+-            if (gi.isValid())
+-                gm.width -= qRound(gi.xoff - gi.x - gi.width);
+         }
+     }
+     return gm;
 Index: src/gui/text/qtextdocumentlayout_p.h
 ===================================================================
 --- src/gui/text/qtextdocumentlayout_p.h	(revision 12931)
-+++ src/gui/text/qtextdocumentlayout_p.h	(revision 22411)
++++ src/gui/text/qtextdocumentlayout_p.h	(revision 29385)
 @@ -102,6 +102,7 @@
  
      bool contentHasAlignment() const;
@@ -52,10 +333,47 @@ Index: src/gui/text/qtextdocumentlayout_p.h
  protected:
      void documentChanged(int from, int oldLength, int length);
      void resizeInlineObject(QTextInlineObject item, int posInDocument, const QTextFormat &format);
+Index: src/gui/text/qfontengine_win.cpp
+===================================================================
+--- src/gui/text/qfontengine_win.cpp	(revision 12931)
++++ src/gui/text/qfontengine_win.cpp	(revision 29385)
+@@ -482,7 +482,7 @@
+     for (int i = 0; i < glyphs.numGlyphs; ++i)
+         w += glyphs.effectiveAdvance(i);
+ 
+-    return glyph_metrics_t(0, -tm.tmAscent, w, tm.tmHeight, w, 0);
++    return glyph_metrics_t(0, -tm.tmAscent, w - lastRightBearing(glyphs), tm.tmHeight, w, 0);
+ }
+ 
+ #ifndef Q_WS_WINCE
+Index: src/gui/text/qfont.h
+===================================================================
+--- src/gui/text/qfont.h	(revision 12931)
++++ src/gui/text/qfont.h	(revision 29385)
+@@ -86,6 +86,7 @@
+         PreferAntialias  = 0x0080,
+         NoAntialias      = 0x0100,
+         OpenGLCompatible = 0x0200,
++	ForceIntegerMetrics = 0x0400,
+         NoFontMerging    = 0x8000
+     };
+ 
+Index: src/gui/text/qfontengine_p.h
+===================================================================
+--- src/gui/text/qfontengine_p.h	(revision 12931)
++++ src/gui/text/qfontengine_p.h	(revision 29385)
+@@ -251,6 +251,7 @@
+ 
+ protected:
+     static const QVector<QRgb> &grayPalette();
++    QFixed lastRightBearing(const QGlyphLayout &glyphs, bool round = false);
+ 
+ private:
+     struct GlyphCacheEntry {
 Index: src/gui/text/qtextdocumentlayout.cpp
 ===================================================================
 --- src/gui/text/qtextdocumentlayout.cpp	(revision 12931)
-+++ src/gui/text/qtextdocumentlayout.cpp	(revision 22411)
++++ src/gui/text/qtextdocumentlayout.cpp	(revision 29385)
 @@ -513,6 +513,8 @@
  
      qreal scaleToDevice(qreal value) const;
@@ -103,10 +421,23 @@ Index: src/gui/text/qtextdocumentlayout.cpp
  
  void QTextDocumentLayout::draw(QPainter *painter, const PaintContext &context)
  {
+Index: src/gui/text/qfontengine_s60.cpp
+===================================================================
+--- src/gui/text/qfontengine_s60.cpp	(revision 12931)
++++ src/gui/text/qfontengine_s60.cpp	(revision 29385)
+@@ -258,7 +258,7 @@
+     for (int i = 0; i < glyphs.numGlyphs; ++i)
+         w += glyphs.effectiveAdvance(i);
+ 
+-    return glyph_metrics_t(0, -ascent(), w, ascent()+descent()+1, w, 0);
++    return glyph_metrics_t(0, -ascent(), w - lastRightBearing(glyphs), ascent()+descent()+1, w, 0);
+ }
+ 
+ glyph_metrics_t QFontEngineS60::boundingBox_const(glyph_t glyph) const
 Index: src/gui/text/qabstracttextdocumentlayout.h
 ===================================================================
 --- src/gui/text/qabstracttextdocumentlayout.h	(revision 12931)
-+++ src/gui/text/qabstracttextdocumentlayout.h	(revision 22411)
++++ src/gui/text/qabstracttextdocumentlayout.h	(revision 29385)
 @@ -103,6 +103,8 @@
      void registerHandler(int objectType, QObject *component);
      QTextObjectInterface *handlerForObject(int objectType) const;
@@ -116,10 +447,36 @@ Index: src/gui/text/qabstracttextdocumentlayout.h
  Q_SIGNALS:
      void update(const QRectF & = QRectF(0., 0., 1000000000., 1000000000.));
      void updateBlock(const QTextBlock &block);
+Index: src/network/kernel/qhostinfo_p.h
+===================================================================
+--- src/network/kernel/qhostinfo_p.h	(revision 12931)
++++ src/network/kernel/qhostinfo_p.h	(revision 29385)
+@@ -153,6 +153,9 @@
+     QMutex mutex;
+ 
+     bool wasDeleted;
++
++private slots:
++    void waitForThreadPoolDone() { threadPool.waitForDone(); }
+ };
+ #endif
+ 
+Index: src/network/kernel/qhostinfo.cpp
+===================================================================
+--- src/network/kernel/qhostinfo.cpp	(revision 12931)
++++ src/network/kernel/qhostinfo.cpp	(revision 29385)
+@@ -445,6 +445,7 @@
+ QHostInfoLookupManager::QHostInfoLookupManager() : mutex(QMutex::Recursive), wasDeleted(false)
+ {
+     moveToThread(QCoreApplicationPrivate::mainThread());
++	connect(QCoreApplication::instance(), SIGNAL(destroyed()), SLOT(waitForThreadPoolDone()), Qt::DirectConnection);
+     threadPool.setMaxThreadCount(5); // do 5 DNS lookups in parallel
+ }
+ 
 Index: src/dbus/qdbusintegrator.cpp
 ===================================================================
 --- src/dbus/qdbusintegrator.cpp	(revision 12931)
-+++ src/dbus/qdbusintegrator.cpp	(revision 22411)
++++ src/dbus/qdbusintegrator.cpp	(revision 29385)
 @@ -2051,6 +2051,7 @@
                      ++data.refcount;
                  } else {
@@ -174,7 +531,7 @@ Index: src/dbus/qdbusintegrator.cpp
 Index: src/sql/kernel/qsqldriver.h
 ===================================================================
 --- src/sql/kernel/qsqldriver.h	(revision 12931)
-+++ src/sql/kernel/qsqldriver.h	(revision 22411)
++++ src/sql/kernel/qsqldriver.h	(revision 29385)
 @@ -133,6 +133,7 @@
      void setNumericalPrecisionPolicy(QSql::NumericalPrecisionPolicy precisionPolicy);
      QSql::NumericalPrecisionPolicy numericalPrecisionPolicy() const;
@@ -186,7 +543,7 @@ Index: src/sql/kernel/qsqldriver.h
 Index: src/sql/drivers/sqlite/qsql_sqlite.cpp
 ===================================================================
 --- src/sql/drivers/sqlite/qsql_sqlite.cpp	(revision 12931)
-+++ src/sql/drivers/sqlite/qsql_sqlite.cpp	(revision 22411)
++++ src/sql/drivers/sqlite/qsql_sqlite.cpp	(revision 29385)
 @@ -714,4 +714,9 @@
      return _q_escapeIdentifier(identifier);
  }
@@ -200,7 +557,7 @@ Index: src/sql/drivers/sqlite/qsql_sqlite.cpp
 Index: src/sql/drivers/sqlite/qsql_sqlite.h
 ===================================================================
 --- src/sql/drivers/sqlite/qsql_sqlite.h	(revision 12931)
-+++ src/sql/drivers/sqlite/qsql_sqlite.h	(revision 22411)
++++ src/sql/drivers/sqlite/qsql_sqlite.h	(revision 29385)
 @@ -112,6 +112,8 @@
      QVariant handle() const;
      QString escapeIdentifier(const QString &identifier, IdentifierType) const;
@@ -213,7 +570,7 @@ Index: src/sql/drivers/sqlite/qsql_sqlite.h
 Index: src/3rdparty/freetype/include/freetype/config/ftconfig.h
 ===================================================================
 --- src/3rdparty/freetype/include/freetype/config/ftconfig.h	(revision 12931)
-+++ src/3rdparty/freetype/include/freetype/config/ftconfig.h	(revision 22411)
++++ src/3rdparty/freetype/include/freetype/config/ftconfig.h	(revision 29385)
 @@ -327,7 +327,7 @@
        "adds   %1, %1, %0\n\t"       /* %1 += %0 */
        "adc    %2, %2, #0\n\t"       /* %2 += carry */
@@ -226,8 +583,8 @@ Index: src/3rdparty/freetype/include/freetype/config/ftconfig.h
 Index: src/3rdparty/webkit/WebKit/qt/Api/qwebpage.h
 ===================================================================
 --- src/3rdparty/webkit/WebKit/qt/Api/qwebpage.h	(revision 12931)
-+++ src/3rdparty/webkit/WebKit/qt/Api/qwebpage.h	(revision 22411)
-@@ -199,7 +199,16 @@
++++ src/3rdparty/webkit/WebKit/qt/Api/qwebpage.h	(revision 29385)
+@@ -199,7 +199,18 @@
  
      QWebHistory *history() const;
      QWebSettings *settings() const;
@@ -239,12 +596,14 @@ Index: src/3rdparty/webkit/WebKit/qt/Api/qwebpage.h
 +	void expandSelectionLeft(QRect bounds);
 +	void expandSelectionUp(QRect bounds);
 +	void expandSelectionDown(QRect bounds);
-+
++	
++	void selectBetweenPoints(QPoint one, QPoint two);
++	QPair<QRect, QRect> selectionEndPoints();
 +
      void setView(QWidget *view);
      QWidget *view() const;
  
-@@ -230,6 +239,7 @@
+@@ -230,6 +241,7 @@
      quint64 bytesReceived() const;
  
      QString selectedText() const;
@@ -255,7 +614,7 @@ Index: src/3rdparty/webkit/WebKit/qt/Api/qwebpage.h
 Index: src/3rdparty/webkit/WebKit/qt/Api/qwebframe.h
 ===================================================================
 --- src/3rdparty/webkit/WebKit/qt/Api/qwebframe.h	(revision 12931)
-+++ src/3rdparty/webkit/WebKit/qt/Api/qwebframe.h	(revision 22411)
++++ src/3rdparty/webkit/WebKit/qt/Api/qwebframe.h	(revision 29385)
 @@ -121,6 +121,7 @@
  
  public:
@@ -267,7 +626,7 @@ Index: src/3rdparty/webkit/WebKit/qt/Api/qwebframe.h
 Index: src/3rdparty/webkit/WebKit/qt/Api/qwebpage.cpp
 ===================================================================
 --- src/3rdparty/webkit/WebKit/qt/Api/qwebpage.cpp	(revision 12931)
-+++ src/3rdparty/webkit/WebKit/qt/Api/qwebpage.cpp	(revision 22411)
++++ src/3rdparty/webkit/WebKit/qt/Api/qwebpage.cpp	(revision 29385)
 @@ -40,6 +40,7 @@
  #include "FormState.h"
  #include "ApplicationCacheStorage.h"
@@ -290,7 +649,7 @@ Index: src/3rdparty/webkit/WebKit/qt/Api/qwebpage.cpp
  #include "HitTestResult.h"
  #include "WindowFeatures.h"
  #include "LocalizedStrings.h"
-@@ -2174,6 +2177,76 @@
+@@ -2174,6 +2177,145 @@
      return d->page->focusController()->focusedOrMainFrame()->selectedText();
  }
  
@@ -353,8 +712,7 @@ Index: src/3rdparty/webkit/WebKit/qt/Api/qwebpage.cpp
 +		}
 +		if (newSelection.isRange()) {
 +			frame->setSelectionGranularity(WordGranularity);
-+
-+		}
++		}		
 +		frame->selection()->setSelection(newSelection);
 +	}
 +}
@@ -364,13 +722,83 @@ Index: src/3rdparty/webkit/WebKit/qt/Api/qwebpage.cpp
 +	frame->selection()->clear();
 +}
 +
++void QWebPage::selectBetweenPoints(QPoint one, QPoint two) {
++	if (one.y() > two.y() || (one.y() == two.y() && one.x() >= two.x()))// || (two-one).manhattanLength() < 10)
++		return;
++	d->createMainFrame();
++	Frame *frame = d->page->focusController()->focusedOrMainFrame();
++
++	IntPoint onepoint(one.x(),one.y());
++	HitTestRequest onerequest(HitTestRequest::ReadOnly | HitTestRequest::Active);
++	HitTestResult oneResult(onepoint);
++	frame->document()->renderView()->layer()->hitTest(onerequest, oneResult);
++		
++	IntPoint twopoint(two.x(),two.y());
++	HitTestRequest tworequest(HitTestRequest::ReadOnly | HitTestRequest::Active);
++	HitTestResult twoResult(twopoint);
++	frame->document()->renderView()->layer()->hitTest(tworequest, twoResult);
++	
++	Node *oneNode = oneResult.innerNode();
++	Node *twoNode = twoResult.innerNode();
++	if (oneNode && twoNode && oneNode->renderer() && twoNode->renderer()) {
++		VisiblePosition onepos(oneNode->renderer()->positionForPoint(oneResult.localPoint()));
++		VisiblePosition twopos(twoNode->renderer()->positionForPoint(twoResult.localPoint()));
++		VisibleSelection newSelection;
++		if (onepos.isNotNull() && twopos.isNotNull()) {
++			newSelection = VisibleSelection(onepos, twopos);
++		}
++		// don't stomp on a good selection with a bogus one
++		QString oldText = selectedText();
++		VisibleSelection oldSelection = frame->selection()->selection();
++		frame->selection()->setSelection(newSelection);
++		if (selectedText() == "" && oldText != "") {
++			frame->selection()->setSelection(oldSelection);
++		}
++	}
++}
++
++QPair<QRect, QRect> QWebPage::selectionEndPoints() {
++	d->createMainFrame();
++	VisibleSelection selection = d->page->focusController()->focusedOrMainFrame()->selection()->selection();
++	PassRefPtr<Range> range = selection.firstRange();
++	Vector<IntRect> rects;
++	if (range.get() != NULL) {
++		range.get()->textRects(rects, true);
++	}
++	if (rects.size() == 0) {
++		return QPair<QRect, QRect>();
++	}
++	IntRect startRect = rects.first();
++	IntRect endRect = rects.last();
++	QRect startQRect(startRect.x(), startRect.y(), 1, startRect.height());
++	QRect endQRect(endRect.x() + endRect.width(), endRect.y(), 1, endRect.height());
++
++	// this is a bit awkward...
++	// The rects returned by the Range are taller than what we want, but the
++	// rects returned by absoluteCaretBounds are sometimes totally wrong
++	// (specifically, on selecting a single word at the end of certain lines,
++	// it gives an end rect that's at the end of the current DOM node).
++	// So we take the height of the caretBounds rects and the position of the
++	// Range rects, and mash them together into something reasonable.
++	VisiblePosition start = selection.visibleStart();
++	VisiblePosition end = selection.visibleEnd();
++	IntRect startRect2 = start.absoluteCaretBounds();
++	IntRect endRect2 = end.absoluteCaretBounds();
++	QRect startQRect2(startRect2.x(), startRect2.y(), startRect2.width(), startRect2.height());
++	QRect endQRect2(endRect2.x(), endRect2.y(), endRect2.width(), endRect2.height());
++	
++	QRect startQRect3(startQRect.x(), startQRect.y() + (startQRect.height() - startQRect2.height()), 1, startQRect2.height());
++	QRect endQRect3(endQRect.x(), endQRect.y() + (endQRect.height() - endQRect2.height()), 1, endQRect2.height());
++	return QPair<QRect, QRect>(startQRect3,endQRect3);
++}
++
  /*!
     Returns a QAction for the specified WebAction \a action.
  
 Index: src/3rdparty/webkit/WebKit/qt/Api/qwebframe.cpp
 ===================================================================
 --- src/3rdparty/webkit/WebKit/qt/Api/qwebframe.cpp	(revision 12931)
-+++ src/3rdparty/webkit/WebKit/qt/Api/qwebframe.cpp	(revision 22411)
++++ src/3rdparty/webkit/WebKit/qt/Api/qwebframe.cpp	(revision 29385)
 @@ -1826,3 +1826,17 @@
          return 0;
      return d->frame;
@@ -392,7 +820,7 @@ Index: src/3rdparty/webkit/WebKit/qt/Api/qwebframe.cpp
 Index: src/3rdparty/webkit/WebCore/platform/graphics/GraphicsContext.cpp
 ===================================================================
 --- src/3rdparty/webkit/WebCore/platform/graphics/GraphicsContext.cpp	(revision 12931)
-+++ src/3rdparty/webkit/WebCore/platform/graphics/GraphicsContext.cpp	(revision 22411)
++++ src/3rdparty/webkit/WebCore/platform/graphics/GraphicsContext.cpp	(revision 29385)
 @@ -31,6 +31,9 @@
  #include "Generator.h"
  #include "GraphicsContextPrivate.h"
@@ -412,8 +840,8 @@ Index: src/3rdparty/webkit/WebCore/platform/graphics/GraphicsContext.cpp
 +    QSettings settings;
 +    if (settings.value("selectionStyle", "underline") == "underline") {
 +		FloatRect rect(font.selectionRectForText(run, point, h, from, to));
-+		rect.setY(rect.y() + rect.height() - 2);
-+		rect.setHeight(2);
++		rect.setY(rect.y() + rect.height() - 3);
++		rect.setHeight(3);
 +		rect.setWidth(rect.width() - 1);
 +		Color color(0,0,0);
 +		fillRect(rect, color);
@@ -427,7 +855,7 @@ Index: src/3rdparty/webkit/WebCore/platform/graphics/GraphicsContext.cpp
 Index: src/3rdparty/webkit/WebCore/rendering/RenderObject.cpp
 ===================================================================
 --- src/3rdparty/webkit/WebCore/rendering/RenderObject.cpp	(revision 12931)
-+++ src/3rdparty/webkit/WebCore/rendering/RenderObject.cpp	(revision 22411)
++++ src/3rdparty/webkit/WebCore/rendering/RenderObject.cpp	(revision 29385)
 @@ -1346,7 +1346,9 @@
      if (style()->userSelect() != SELECT_NONE) {
           RefPtr<RenderStyle> pseudoStyle = getUncachedPseudoStyle(SELECTION);
@@ -442,7 +870,7 @@ Index: src/3rdparty/webkit/WebCore/rendering/RenderObject.cpp
 Index: src/3rdparty/webkit/WebCore/rendering/RenderTreeAsText.cpp
 ===================================================================
 --- src/3rdparty/webkit/WebCore/rendering/RenderTreeAsText.cpp	(revision 12931)
-+++ src/3rdparty/webkit/WebCore/rendering/RenderTreeAsText.cpp	(revision 22411)
++++ src/3rdparty/webkit/WebCore/rendering/RenderTreeAsText.cpp	(revision 29385)
 @@ -581,4 +581,84 @@
      return stream.release();
  }
@@ -531,7 +959,7 @@ Index: src/3rdparty/webkit/WebCore/rendering/RenderTreeAsText.cpp
 Index: src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp
 ===================================================================
 --- src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp	(revision 12931)
-+++ src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp	(revision 22411)
++++ src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp	(revision 29385)
 @@ -745,6 +745,8 @@
              if (o->isText()) {
                  RenderText* text = toRenderText(o);
@@ -544,7 +972,7 @@ Index: src/3rdparty/webkit/WebCore/dom/ContainerNode.cpp
 Index: src/3rdparty/webkit/WebCore/dom/Range.cpp
 ===================================================================
 --- src/3rdparty/webkit/WebCore/dom/Range.cpp	(revision 12931)
-+++ src/3rdparty/webkit/WebCore/dom/Range.cpp	(revision 22411)
++++ src/3rdparty/webkit/WebCore/dom/Range.cpp	(revision 29385)
 @@ -1417,7 +1417,7 @@
      // although this will fail below for another reason).
      if (parentOfNewParent->isCharacterDataNode())
@@ -557,7 +985,7 @@ Index: src/3rdparty/webkit/WebCore/dom/Range.cpp
 Index: src/3rdparty/webkit/WebCore/editing/VisibleSelection.h
 ===================================================================
 --- src/3rdparty/webkit/WebCore/editing/VisibleSelection.h	(revision 12931)
-+++ src/3rdparty/webkit/WebCore/editing/VisibleSelection.h	(revision 22411)
++++ src/3rdparty/webkit/WebCore/editing/VisibleSelection.h	(revision 29385)
 @@ -41,6 +41,8 @@
  
      VisibleSelection();
@@ -596,7 +1024,7 @@ Index: src/3rdparty/webkit/WebCore/editing/VisibleSelection.h
 Index: src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp
 ===================================================================
 --- src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp	(revision 12931)
-+++ src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp	(revision 22411)
++++ src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp	(revision 29385)
 @@ -39,6 +39,9 @@
  #include <wtf/Assertions.h>
  #include <stdio.h>
@@ -679,7 +1107,7 @@ Index: src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp
  {
      validate();
  }
-@@ -321,6 +351,34 @@
+@@ -321,6 +351,36 @@
              }
                  
              m_end = end.deepEquivalent();
@@ -687,9 +1115,11 @@ Index: src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp
 +            //added this to select only letters for dictionary viewing
 +            if( m_selectOnlyLetters && m_start.anchorNode()->isTextNode() && m_end.anchorNode()->isTextNode() ) {
 +
-+                CharacterData* text = static_cast<CharacterData*>(m_start.anchorNode());
-+                String s = text->data();                
-+                
++                CharacterData* startText = static_cast<CharacterData*>(m_start.anchorNode());
++                String startStr = startText->data();
++                CharacterData* endText = static_cast<CharacterData*>(m_end.anchorNode());
++                String endStr = endText->data();
++
 +                int n1 = m_start.offsetInContainerNode();
 +                int n2 = m_end.offsetInContainerNode() - 1;
 +
@@ -698,16 +1128,16 @@ Index: src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp
 +                //of a sentence to be part of the selection. Assigning m_end to m_start and
 +                //adjusting the offset does not fix this. 		
 +
-+                QChar c1 = s[n1];
-+                QChar c2 = s[n2];
++                QChar c1 = startStr[n1];
++                QChar c2 = endStr[n2];
 +
 +                while(!c1.isLetter() && n1 <= n2) {
-+                    c1 = s[++n1];
++                    c1 = startStr[++n1];
 +                    m_start = m_start.next(Character);
 +                }
 +
 +                while(!c2.isLetter() && n2 >= n1) {
-+                    c2 = s[--n2];
++                    c2 = endStr[--n2];
 +                    m_end = m_end.previous(Character);
 +                }
 +            }
@@ -717,7 +1147,7 @@ Index: src/3rdparty/webkit/WebCore/editing/VisibleSelection.cpp
 Index: src/3rdparty/sqlite/sqlite3.c
 ===================================================================
 --- src/3rdparty/sqlite/sqlite3.c	(revision 12931)
-+++ src/3rdparty/sqlite/sqlite3.c	(revision 22411)
++++ src/3rdparty/sqlite/sqlite3.c	(revision 29385)
 @@ -48465,17 +48465,17 @@
  ** request, then increment *pnByte by the amount of the request.
  */
