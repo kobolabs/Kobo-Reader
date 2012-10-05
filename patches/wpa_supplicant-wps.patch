@@ -1,0 +1,11 @@
+--- wpa_supplicant-0.7.1/wpa_supplicant/.config 2012-05-17 10:50:37.285982001 -0400
++++ wpa_supplicant-0.7.1/wpa_supplicant/.config	2012-05-17 10:50:48.341982002 -0400
+@@ -189,7 +189,7 @@
+ #CONFIG_EAP_TNC=y
+ 
+ # Wi-Fi Protected Setup (WPS)
+-#CONFIG_WPS=y
++CONFIG_WPS=y
+ 
+ # EAP-IKEv2
+ #CONFIG_EAP_IKEV2=y
