@@ -1,6 +1,8 @@
 This repository contains the open source packages and patches that are used
 on the Kobo Reader and Kobo Desktop applications.
 
+
+
 documentation/	Some general documentation.
 build/		This contains the scripts necessary to create a working
 		development environment.
