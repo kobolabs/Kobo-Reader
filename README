@@ -20,3 +20,5 @@ examples/	This contains Video Poker and Blackjack - the easter eggs
 poser/		This is a small interposing library used to sniff ioctl's.
 		Kobo used this to reverse engineer some of the Netronix
 		EB600em API in times when documentation was sparse.
+
+
