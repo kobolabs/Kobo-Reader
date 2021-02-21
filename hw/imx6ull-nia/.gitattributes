@@ -1,2 +1,0 @@
-bootloader.tgz filter=lfs diff=lfs merge=lfs -text
-kernel.tgz filter=lfs diff=lfs merge=lfs -text
